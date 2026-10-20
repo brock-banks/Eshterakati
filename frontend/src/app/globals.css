@@ -11,22 +11,26 @@
 :root {
   color-scheme: light dark;
 
-  /* Typography — the system font resolves to SF Pro on Apple devices. */
-  --font-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Arabic", "Helvetica Neue", "Segoe UI", system-ui, "Noto Sans Arabic", sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Arabic", "Helvetica Neue", "Segoe UI", system-ui, "Noto Sans Arabic", sans-serif;
+  /* Typography — Alexandria is bundled (next/font) so every platform renders the same face. */
+  --font-text: var(--font-alexandria), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Noto Sans Arabic", sans-serif;
+  --font-display: var(--font-text);
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Dynamic Type scale (iOS default "Large" size; rem so browser zoom/text size scales it) */
-  --t-large-title: 700 2.125rem/1.2 var(--font-display);   /* 34 */
-  --t-title1: 700 1.75rem/1.21 var(--font-display);        /* 28 */
-  --t-title2: 700 1.375rem/1.27 var(--font-display);       /* 22 */
-  --t-title3: 600 1.25rem/1.25 var(--font-display);        /* 20 */
-  --t-headline: 600 1.0625rem/1.3 var(--font-text);        /* 17 */
-  --t-body: 400 1.0625rem/1.47 var(--font-text);           /* 17 */
-  --t-callout: 400 1rem/1.4 var(--font-text);              /* 16 */
-  --t-subhead: 400 0.9375rem/1.4 var(--font-text);         /* 15 */
-  --t-footnote: 400 0.8125rem/1.38 var(--font-text);       /* 13 */
-  --t-caption: 400 0.75rem/1.33 var(--font-text);          /* 12 */
+  /* Type scale. Alexandria sets larger than SF at the same size, so the scale sits
+     a step below iOS defaults; rem so browser zoom/text size scales it. Running
+     text takes --lh-text, which Arabic raises for its taller letters. */
+  --lh-text: 1.5;
+  --t-large-title: 700 1.75rem/1.2 var(--font-display);    /* 28 */
+  --t-title1: 600 1.5rem/1.25 var(--font-display);         /* 24 */
+  --t-title2: 600 1.25rem/1.3 var(--font-display);         /* 20 */
+  --t-title3: 600 1.0625rem/1.3 var(--font-display);       /* 17 */
+  --t-headline: 600 0.9375rem/1.35 var(--font-text);       /* 15 */
+  --t-body: 400 0.9375rem/var(--lh-text) var(--font-text); /* 15 */
+  --t-callout: 400 0.875rem/var(--lh-text) var(--font-text); /* 14 */
+  --t-subhead: 400 0.8125rem/var(--lh-text) var(--font-text); /* 13 */
+  --t-footnote: 400 0.75rem/1.4 var(--font-text);          /* 12 */
+  --t-caption: 400 0.6875rem/1.35 var(--font-text);        /* 11 */
+  --t-field: 400 1rem/1.4 var(--font-text);                /* 16: smaller makes iOS Safari zoom on focus */
 
   /* Spacing — 4pt grid */
   --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
@@ -46,6 +50,8 @@
 
   /* Sizes */
   --header-h: 52px; --tabbar-h: 50px; --hit: 44px;
+  /* Controls: compact visuals; on touch screens buttons keep a 44px tap area (see .btn::after). */
+  --btn-h: 40px; --btn-h-lg: 46px; --btn-h-sm: 32px; --field-h: 44px;
 
   /* Colour — light (system colours tuned to WCAG AA where text sits on them) */
   --bg: #f5f5f7;                       /* systemGroupedBackground */
@@ -158,7 +164,7 @@
 }
 
 @media (min-width: 768px) {
-  :root { --gutter: 24px; --t-large-title: 700 2.5rem/1.1 var(--font-display); }
+  :root { --gutter: 24px; --t-large-title: 700 2rem/1.2 var(--font-display); }
 }
 
 /* ---------- 2. Base ------------------------------------------------------ */
@@ -246,7 +252,7 @@ a, button, input, label, summary, [role="radio"] {
 .brand {
   display: inline-flex; align-items: center; gap: var(--s-2);
   min-height: var(--hit); padding-inline: 6px;
-  color: var(--label); font: 600 1.125rem/1 var(--font-display); letter-spacing: -0.02em;
+  color: var(--label); font: 600 1rem/1 var(--font-display); letter-spacing: -0.01em;
 }
 .brand:hover { text-decoration: none; }
 .brand-mark {
@@ -261,7 +267,7 @@ a, button, input, label, summary, [role="radio"] {
 .top-nav a {
   display: inline-flex; align-items: center; min-height: var(--hit);
   padding-inline: var(--s-3);
-  color: var(--label-2); font: 400 0.875rem/1 var(--font-text);
+  color: var(--label-2); font: 400 0.8125rem/1 var(--font-text);
 }
 .top-nav a:hover { color: var(--label); text-decoration: none; }
 .top-nav a[aria-current="page"] { color: var(--label); font-weight: 600; }
@@ -343,7 +349,7 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
 
 .page-head { padding-block: var(--s-6) var(--s-4); }
 .eyebrow {
-  color: var(--label-2); font: 600 0.8125rem/1.3 var(--font-text);
+  color: var(--label-2); font: 600 0.75rem/1.3 var(--font-text);
   text-transform: uppercase; letter-spacing: 0.04em;
 }
 .large-title { font: var(--t-large-title); letter-spacing: -0.015em; }
@@ -384,9 +390,9 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
-  min-height: var(--hit); padding-inline: var(--s-5);
+  position: relative; min-height: var(--btn-h); padding-inline: var(--s-4);
   border: 0; border-radius: var(--r-pill);
-  font: 600 1.0625rem/1.1 var(--font-text); letter-spacing: -0.01em;
+  font: 600 0.9375rem/1.1 var(--font-text);
   text-align: center; text-decoration: none; white-space: nowrap;
   transition: background-color var(--dur-fast) var(--ease-out),
               transform var(--dur-fast) var(--ease-out),
@@ -407,8 +413,16 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
 .btn-destructive { background: transparent; color: var(--red); padding-inline: var(--s-3); font-weight: 400; }
 .btn-on-color { background: #fff; color: #1d1d1f; }
 
-.btn-lg { min-height: 50px; border-radius: 14px; width: 100%; }
-.btn-sm { font: 600 0.9375rem/1.1 var(--font-text); padding-inline: var(--s-4); }
+.btn-lg { min-height: var(--btn-h-lg); border-radius: var(--r-md); width: 100%; }
+.btn-sm { min-height: var(--btn-h-sm); font: 600 0.8125rem/1.1 var(--font-text); padding-inline: var(--s-3); }
+.btn-sm .icon { width: 16px; height: 16px; }
+/* Fingers need 44px: grow the tap area, not the button. */
+@media (pointer: coarse) {
+  .segmented [role="radio"] { position: relative; }
+  :is(.btn, .segmented [role="radio"])::after {
+    content: ""; position: absolute; inset-inline: 0; inset-block: min(0px, calc((100% - var(--hit)) / 2));
+  }
+}
 
 .spinner {
   width: 18px; height: 18px; border-radius: 50%;
@@ -425,7 +439,7 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
   display: grid; place-items: center; flex: none;
   width: 48px; height: 48px; border-radius: var(--r-md);
   background: linear-gradient(135deg, hsl(var(--h) 78% var(--tile-l1)), hsl(calc(var(--h) + 32) 80% var(--tile-l2)));
-  color: #fff; font: 700 1.375rem/1 var(--font-display);
+  color: #fff; font: 700 1.25rem/1 var(--font-display);
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08);
 }
 .tile-sm { width: 40px; height: 40px; border-radius: var(--r-sm); font-size: 1.125rem; }
@@ -453,8 +467,8 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
 .deal-merchant { color: var(--label-2); font: var(--t-footnote); }
 .deal-title { font: var(--t-headline); }
 .price-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--s-2); margin-block-start: var(--s-1); }
-.price { font: 600 1.0625rem/1.3 var(--font-text); font-variant-numeric: tabular-nums; }
-.price .from { font-weight: 400; color: var(--label-2); font-size: 0.9375rem; }
+.price { font: 600 0.9375rem/1.3 var(--font-text); font-variant-numeric: tabular-nums; }
+.price .from { font-weight: 400; color: var(--label-2); font-size: 0.8125rem; }
 .was { color: var(--label-2); font: var(--t-subhead); font-variant-numeric: tabular-nums; }
 .meta-row { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-block-start: var(--s-2); }
 
@@ -467,7 +481,7 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
   display: inline-flex; align-items: center; gap: 4px;
   min-height: 24px; padding-inline: var(--s-2);
   border-radius: var(--r-pill);
-  font: 600 0.8125rem/1 var(--font-text); white-space: nowrap;
+  font: 600 0.75rem/1 var(--font-text); white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .badge .icon { width: 14px; height: 14px; stroke-width: 2.25; }
@@ -495,11 +509,11 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
 .hero-art { position: relative; justify-self: end; }
 .hero-art .tile-xl { background: rgba(255, 255, 255, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .hero-copy { position: relative; max-width: 34rem; }
-.hero-eyebrow { font: 600 0.8125rem/1.3 var(--font-text); text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
-.hero-title { margin-block-start: var(--s-1); font: 700 clamp(1.75rem, 4vw, 2.5rem)/1.1 var(--font-display); letter-spacing: -0.02em; }
+.hero-eyebrow { font: 600 0.75rem/1.3 var(--font-text); text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
+.hero-title { margin-block-start: var(--s-1); font: 700 clamp(1.5rem, 4vw, 2.125rem)/1.15 var(--font-display); letter-spacing: -0.02em; }
 .hero-sub { margin-block-start: var(--s-2); font: var(--t-callout); opacity: 0.9; }
 .hero-cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); margin-block-start: var(--s-5); }
-.hero-price { font: 600 1.0625rem/1.2 var(--font-text); font-variant-numeric: tabular-nums; }
+.hero-price { font: 600 0.9375rem/1.2 var(--font-text); font-variant-numeric: tabular-nums; }
 .hero-price s { opacity: 0.75; font-weight: 400; margin-inline-start: 6px; }
 
 @media (min-width: 768px) {
@@ -520,7 +534,7 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
   min-height: var(--hit); padding-inline: var(--s-4);
   border-radius: var(--r-pill); background: var(--bg-elevated);
   box-shadow: var(--shadow-1);
-  color: var(--label); font: 500 0.9375rem/1 var(--font-text);
+  color: var(--label); font: 500 0.8125rem/1 var(--font-text);
   scroll-snap-align: start;
   transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast);
 }
@@ -570,7 +584,7 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
 
 .list-header {
   padding-inline: var(--s-4); margin-block: var(--s-8) var(--s-2);
-  color: var(--label-2); font: 400 0.8125rem/1.3 var(--font-text);
+  color: var(--label-2); font: 400 0.75rem/1.3 var(--font-text);
   text-transform: uppercase; letter-spacing: 0.03em;
 }
 .list-footer { padding: var(--s-2) var(--s-4) 0; color: var(--label-2); font: var(--t-footnote); }
@@ -620,9 +634,9 @@ button.list-row { width: 100%; border: 0; background: transparent; text-align: s
   padding: 2px; border-radius: 11px; background: var(--fill);
 }
 .segmented [role="radio"] {
-  min-height: 40px; padding-inline: var(--s-4);
+  min-height: var(--btn-h-sm); padding-inline: var(--s-4);
   border: 0; border-radius: 9px; background: transparent;
-  color: var(--label); font: 500 0.875rem/1 var(--font-text); white-space: nowrap;
+  color: var(--label); font: 500 0.8125rem/1 var(--font-text); white-space: nowrap;
   transition: background-color var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
 }
 .segmented [role="radio"][aria-checked="true"] {
@@ -656,9 +670,9 @@ label.list-row { cursor: pointer; }
   width: 18px; height: 18px; color: var(--label-2); pointer-events: none;
 }
 .search-field input {
-  width: 100%; height: 44px; padding-inline: 40px 44px;
+  width: 100%; height: var(--field-h); padding-inline: 40px 44px;
   border: 0; border-radius: var(--r-sm); background: var(--fill);
-  font: var(--t-body);
+  font: var(--t-field);
   -webkit-appearance: none; appearance: none;
 }
 .search-field input::-webkit-search-cancel-button { display: none; }
@@ -677,15 +691,18 @@ label.list-row { cursor: pointer; }
 .field-help { color: var(--label-2); font: var(--t-footnote); }
 .field-error { display: flex; gap: 6px; align-items: flex-start; color: var(--red); font: var(--t-footnote); }
 .field-error .icon { width: 16px; height: 16px; margin-block-start: 1px; }
+/* iOS-style filled field: no border at rest, a tint ring while editing. */
 .text-input {
-  width: 100%; min-height: 48px; padding-inline: var(--s-4);
-  border: 1px solid var(--separator-strong); border-radius: var(--r-md);
-  background: var(--bg-sheet-card); font: var(--t-body);
-  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+  width: 100%; min-height: var(--field-h); padding-inline: var(--s-4);
+  border: 0; border-radius: var(--r-md);
+  background: var(--fill-2); font: var(--t-field);
+  transition: background-color var(--dur-fast), box-shadow var(--dur-fast);
 }
+.text-input:hover:not(:focus):not([disabled]) { background: var(--fill); }
 .text-input::placeholder { color: var(--label-3); }
-.text-input:focus { outline: none; border-color: var(--focus-ring); box-shadow: 0 0 0 3px var(--tint-bg); }
-.text-input[aria-invalid="true"] { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
+.text-input:focus { outline: none; background: var(--bg-sheet-card); box-shadow: inset 0 0 0 2px var(--focus-ring); }
+.text-input[aria-invalid="true"] { background: var(--red-bg); box-shadow: inset 0 0 0 2px var(--red); }
+.text-input[disabled] { opacity: 0.6; }
 
 /* Option picker (radio cards) */
 .options { border: 0; margin: 0; padding: 0; min-width: 0; }
@@ -723,7 +740,7 @@ label.list-row { cursor: pointer; }
 }
 .stepper button .icon { width: 16px; height: 16px; stroke-width: 2.5; }
 .stepper button[disabled] { color: var(--label-3); cursor: not-allowed; }
-.stepper output { min-width: 24px; text-align: center; font: 600 0.9375rem/1 var(--font-text); font-variant-numeric: tabular-nums; }
+.stepper output { min-width: 24px; text-align: center; font: 600 0.8125rem/1 var(--font-text); font-variant-numeric: tabular-nums; }
 
 /* Disclosure */
 .disclosure { border-radius: var(--r-md); background: var(--bg-elevated); box-shadow: var(--shadow-1); }
@@ -757,7 +774,7 @@ label.list-row { cursor: pointer; }
   color: #fff; box-shadow: var(--shadow-2);
 }
 .deal-art .tile-xl { background: rgba(255, 255, 255, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
-.deal-art-name { font: 600 1.25rem/1.2 var(--font-display); opacity: 0.95; }
+.deal-art-name { font: 600 1.125rem/1.2 var(--font-display); opacity: 0.95; }
 .deal-art .badge { position: absolute; inset-block-start: var(--s-4); inset-inline-start: var(--s-4); background: rgba(255, 255, 255, 0.92); color: #1f7a35; }
 
 .deal-panel { display: grid; gap: var(--s-4); }
@@ -766,7 +783,7 @@ label.list-row { cursor: pointer; }
 .rating .icon { width: 16px; height: 16px; color: var(--yellow); }
 
 .price-block { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
-.price-lg { font: 700 2rem/1.1 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.price-lg { font: 700 1.75rem/1.15 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 
 .cta-row { display: grid; gap: var(--s-3); grid-template-columns: 1fr 1fr; }
 
@@ -783,7 +800,7 @@ label.list-row { cursor: pointer; }
 .steps li::before {
   content: counter(step); display: grid; place-items: center; flex: none;
   width: 28px; height: 28px; border-radius: 50%;
-  background: var(--tint-bg); color: var(--tint-text); font: 700 0.875rem/1 var(--font-text);
+  background: var(--tint-bg); color: var(--tint-text); font: 700 0.8125rem/1 var(--font-text);
 }
 
 .buy-bar {
@@ -796,7 +813,7 @@ label.list-row { cursor: pointer; }
   box-shadow: 0 -0.5px 0 var(--separator);
 }
 .buy-bar-price { flex: 1; min-width: 0; }
-.buy-bar-price .price { display: block; font-size: 1.1875rem; }
+.buy-bar-price .price { display: block; font-size: 1.0625rem; }
 .buy-bar-price .secondary { font: var(--t-footnote); }
 .buy-bar .btn-filled { min-height: 50px; border-radius: 14px; padding-inline: var(--s-6); }
 .buy-bar .btn-tinted { width: 50px; min-height: 50px; padding: 0; border-radius: 14px; }
@@ -827,7 +844,7 @@ label.list-row { cursor: pointer; }
 .pass-head-main { flex: 1; min-width: 0; }
 .pass-merchant { font: var(--t-footnote); opacity: 0.85; }
 .pass-title { font: var(--t-headline); }
-.pass-value { font: 700 1.375rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.pass-value { font: 700 1.25rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .pass-perf { position: relative; height: 0; margin-inline: var(--s-4); border-block-start: 1.5px dashed var(--separator-strong); }
 .pass-body { display: grid; gap: var(--s-3); padding: var(--s-4); }
 .pass-meta { color: var(--label-2); font: var(--t-footnote); }
@@ -842,7 +859,7 @@ label.list-row { cursor: pointer; }
 }
 .code-value {
   flex: 1; min-width: 0;
-  font: 600 1.0625rem/1.3 var(--font-mono); letter-spacing: 0.08em;
+  font: 600 1rem/1.3 var(--font-mono); letter-spacing: 0.08em;
   direction: ltr; unicode-bidi: isolate; text-align: start;
   overflow-wrap: anywhere; user-select: all; -webkit-user-select: all;
 }
@@ -943,7 +960,7 @@ label.list-row { cursor: pointer; }
 
 .line-item { align-items: flex-start; }
 .line-item-actions { display: flex; align-items: center; gap: var(--s-2); margin-block-start: var(--s-2); }
-.line-item-price { text-align: end; font: 600 1rem/1.3 var(--font-text); font-variant-numeric: tabular-nums; }
+.line-item-price { text-align: end; font: 600 0.875rem/1.3 var(--font-text); font-variant-numeric: tabular-nums; }
 .line-item-price s { display: block; color: var(--label-2); font: var(--t-footnote); }
 .remove-btn { color: var(--red); }
 
@@ -952,7 +969,24 @@ label.list-row { cursor: pointer; }
 .summary .saving .list-row-value { color: var(--green); font-weight: 600; }
 
 .pay-option { cursor: pointer; }
-.pay-option input { width: 22px; height: 22px; margin: 0; accent-color: var(--tint); flex: none; }
+/* Radio in a grouped list: an empty ring, then a filled tint circle with a tick. */
+.pay-option input {
+  appearance: none; -webkit-appearance: none; flex: none; margin: 0;
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--separator-strong); cursor: pointer;
+  transition: background-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.pay-option input::after {
+  content: ""; width: 6px; height: 11px; margin-block-start: -2px;
+  border: solid #fff; border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg) scale(0.4); opacity: 0;
+  transition: transform var(--dur) var(--ease-spring), opacity var(--dur-fast);
+}
+.pay-option input:checked { background: var(--tint); box-shadow: none; }
+.pay-option input:checked::after { transform: rotate(45deg) scale(1); opacity: 1; }
+.pay-option input:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.pay-option input[disabled] { cursor: not-allowed; }
+.pay-option:has(input:checked) { background: var(--tint-bg); }
 
 .success { display: grid; justify-items: center; gap: var(--s-2); padding: var(--s-6) 0 var(--s-2); text-align: center; }
 .success-mark {
@@ -988,14 +1022,14 @@ body:has(.buy-bar) .toast-region { inset-block-end: calc(88px + env(safe-area-in
   border-radius: var(--r-pill); background: var(--toast-bg); color: #fff;
   -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  font: 500 0.9375rem/1.3 var(--font-text);
+  font: 500 0.8125rem/1.3 var(--font-text);
   pointer-events: auto;
   animation: toast-in var(--dur) var(--ease-spring);
 }
 .toast .icon { width: 18px; height: 18px; color: #30d158; stroke-width: 2.5; }
 .toast-action {
   min-height: 36px; padding-inline: var(--s-4); border: 0; border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.14); color: #fff; font: 600 0.9375rem/1 var(--font-text);
+  background: rgba(255, 255, 255, 0.14); color: #fff; font: 600 0.8125rem/1 var(--font-text);
 }
 .toast:not(:has(.toast-action)) { padding-inline-end: var(--s-5); }
 @keyframes toast-in { from { transform: translateY(16px) scale(0.96); opacity: 0; } }
@@ -1039,7 +1073,7 @@ body:has(.buy-bar) .toast-region { inset-block-end: calc(88px + env(safe-area-in
 
 /* Phones: keep a full code on one line by making Copy icon-only. */
 @media (max-width: 480px) {
-  .code-value { font-size: 0.9375rem; letter-spacing: 0.03em; }
+  .code-value { font-size: 0.875rem; letter-spacing: 0.03em; }
   .copy-btn { width: var(--hit); padding: 0; }
   .copy-btn .copy-label {
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
@@ -1063,7 +1097,7 @@ body:has(.buy-bar) .toast-region { inset-block-end: calc(88px + env(safe-area-in
 .progress-dot {
   position: relative; z-index: 1; display: grid; place-items: center;
   width: 28px; height: 28px; border-radius: 50%;
-  background: var(--fill); color: var(--label-2); font: 600 0.8125rem/1 var(--font-text);
+  background: var(--fill); color: var(--label-2); font: 600 0.75rem/1 var(--font-text);
 }
 .progress-dot .icon { width: 16px; height: 16px; stroke-width: 3; }
 .is-done .progress-dot { background: var(--green-switch); color: #fff; }
@@ -1096,7 +1130,7 @@ body:has(.buy-bar) .toast-region { inset-block-end: calc(88px + env(safe-area-in
 .deadline .icon { width: 20px; height: 20px; color: var(--tint-text); }
 
 .copy-row { min-height: 64px; }
-.copy-value { display: block; font: 600 1.25rem/1.3 var(--font-display); letter-spacing: 0.01em; overflow-wrap: anywhere; text-align: start; }
+.copy-value { display: block; font: 600 1.125rem/1.3 var(--font-display); letter-spacing: 0.01em; overflow-wrap: anywhere; text-align: start; }
 
 .receipt-form { display: grid; gap: var(--s-4); }
 .receipt-drop {
@@ -1141,7 +1175,7 @@ input[type="file"]:focus-visible + .receipt-preview .btn { outline: 3px solid va
 .lang-btn {
   min-height: var(--hit); padding-inline: var(--s-3);
   border: 0; border-radius: var(--r-pill); background: transparent;
-  color: var(--tint-text); font: 600 0.9375rem/1 var(--font-text);
+  color: var(--tint-text); font: 600 0.8125rem/1 var(--font-text);
 }
 .lang-btn:hover { background: var(--fill-2); }
 
@@ -1149,6 +1183,7 @@ input[type="file"]:focus-visible + .receipt-preview .btn { outline: 3px solid va
    Tracking breaks Arabic letter joining, so it is removed everywhere except
    in Latin codes. Arabic glyphs are taller, so tight display line-heights
    get a little more room. Direction comes from <html dir="rtl">. */
+html[lang="ar"] { --lh-text: 1.65; }
 html[lang="ar"] *:not(.code-value):not(.copy-value) { letter-spacing: 0; }
 html[lang="ar"] :is(.large-title, .hero-title, .title1, .section-title, .price-lg, .pass-value, .deal-art-name) { line-height: 1.35; }
 html[lang="ar"] .eyebrow, html[lang="ar"] .hero-eyebrow, html[lang="ar"] .list-header { text-transform: none; }
@@ -1157,7 +1192,12 @@ html[lang="ar"] .eyebrow, html[lang="ar"] .hero-eyebrow, html[lang="ar"] .list-h
 .plain-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .plain-fieldset legend { padding: 0; }
 .text-area { min-height: 88px; padding-block: var(--s-3); resize: vertical; line-height: 1.4; }
-select.text-input { appearance: auto; }
+select.text-input {
+  appearance: none; -webkit-appearance: none; cursor: pointer; padding-inline-end: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%238e8e93' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-size: 12px; background-position: right 14px center;
+}
+[dir="rtl"] select.text-input { background-position: left 14px center; }
 .receipt-drop-compact { padding: var(--s-5) var(--s-4); }
 .callout-info { background: var(--tint-bg); color: var(--label); }
 .callout-info .icon { color: var(--tint-text); }

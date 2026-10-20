@@ -6,24 +6,43 @@ Apple Human Interface Guidelines, adapted for the web. **Source of truth for tok
 
 ## Foundations
 
-### Typography — Dynamic Type scale, system font
+### Typography — Alexandria, compact scale
 
-`-apple-system, BlinkMacSystemFont, "SF Pro Text"/"SF Pro Display", "SF Arabic", … system-ui`, so it renders in SF Pro and SF Arabic on Apple devices and the native UI font elsewhere. No web fonts are downloaded.
+**Alexandria** (Arabic + Latin, variable weight) is bundled with `next/font/google` in `app/[lang]/layout.tsx` and exposed as `--font-alexandria`, so Windows, Android and Apple devices all render the same face. The system UI font is only a fallback while it loads.
+
+Alexandria sets larger than SF at the same pixel size, so the scale sits a step below the iOS defaults. Titles use 600 because Alexandria's 700 is heavy. Running text uses `--lh-text`: 1.5, or 1.65 in Arabic for its taller letters.
 
 | Token | Size / line | Weight | Use |
 | --- | --- | --- | --- |
-| `--t-large-title` | 34/41 (40 on ≥768) | 700 | One per page, the `h1` |
-| `--t-title1` | 28/34 | 700 | Deal title |
-| `--t-title2` | 22/28 | 700 | Section titles |
-| `--t-title3` | 20/25 | 600 | Empty‑state titles |
-| `--t-headline` | 17/22 | 600 | Card titles, list emphasis |
-| `--t-body` | 17/25 | 400 | Body (≥16px avoids iOS zoom on input focus) |
-| `--t-callout` | 16/22 | 400 | Ledes |
-| `--t-subhead` | 15/21 | 400 | Secondary copy |
-| `--t-footnote` | 13/18 | 400 | Meta, list headers |
-| `--t-caption` | 12/16 | 400 | Smallest allowed. The tab bar label (11px) is the only exception, as in iOS. |
+| `--t-large-title` | 28 (32 on ≥768) / 1.2 | 700 | One per page, the `h1` |
+| `--t-title1` | 24 / 1.25 | 600 | Deal title |
+| `--t-title2` | 20 / 1.3 | 600 | Section titles |
+| `--t-title3` | 17 / 1.3 | 600 | Empty‑state titles |
+| `--t-headline` | 15 / 1.35 | 600 | Card titles, list emphasis |
+| `--t-body` | 15 / `--lh-text` | 400 | Body |
+| `--t-callout` | 14 / `--lh-text` | 400 | Ledes |
+| `--t-subhead` | 13 / `--lh-text` | 400 | Secondary copy |
+| `--t-footnote` | 12 / 1.4 | 400 | Meta, list headers |
+| `--t-caption` | 11 / 1.35 | 400 | Smallest allowed (progress labels, tab bar) |
+| `--t-field` | 16 / 1.4 | 400 | Text fields and search. Below 16px iOS Safari zooms on focus. |
 
 Numbers that change (prices, countdowns, quantities) use `font-variant-numeric: tabular-nums`. Codes use `ui-monospace`/SF Mono.
+
+### Controls — compact, iOS grouped
+
+| Token | Size | Use |
+| --- | --- | --- |
+| `--btn-h` | 40px | Buttons |
+| `--btn-h-lg` | 46px | The main action of a screen or sheet (full width) |
+| `--btn-h-sm` | 32px | Small buttons, segmented control segments |
+| `--field-h` | 44px | Text fields, selects, search |
+
+On touch screens (`pointer: coarse`) buttons and segments keep a 44px tap area with an invisible `::after`, so the visuals stay compact without small targets.
+
+- **Text fields** are filled (`--fill-2`) with no border. Focus shows a 2px tint ring on the card colour; errors a 2px red ring on `--red-bg`.
+- **Selects** use the same field with a drawn chevron (left in RTL), not the browser's arrow.
+- **Radios** in grouped lists (`.pay-option`) are a ring that fills with the tint and a white tick when chosen; the chosen row gets `--tint-bg`.
+- **Option cards** (`.option`) keep their corner check. Switches and the segmented control follow iOS.
 
 ### Colour — semantic tokens (light / dark)
 
@@ -52,7 +71,7 @@ Theme: `prefers-color-scheme` by default. `html[data-theme="light"|"dark"]` forc
 ### Spacing, radius, elevation, motion
 
 - **Spacing:** 4pt grid. `--s-1…--s-16` = 4, 8, 12, 16, 20, 24, 32, 40, 48, 64. Gutter is 16 on phones and 24 on ≥768. Max content width is 1120.
-- **Radius:** 7 (settings icon) · 10 (fields) · 12 (lists, code field) · 18 (cards) · 24 (hero, deal art) · pill (buttons, chips, badges). Sheets use 14 at the top on phones and 22 on desktop.
+- **Radius:** 7 (settings icon) · 10 (search) · 12 (fields, lists, code field, main button) · 18 (cards) · 24 (hero, deal art) · pill (buttons, chips, badges). Sheets use 14 at the top on phones and 22 on desktop.
 - **Elevation:** `--shadow-1` for resting cards and `--shadow-2` for hover, hero and sheets. Dark mode swaps shadows for a 0.5px light edge.
 - **Motion:** 150ms (press) · 250ms (state) · 400ms (sheet). The sheet curve is `cubic-bezier(0.32, 0.72, 0, 1)`, the iOS spring. Press feedback is `scale(.97–.98)`. Only `transform` and `opacity` are animated. `prefers-reduced-motion` turns all motion off.
 - **Layers:** sticky 30 · bars 40 · toast 100. Sheets use the native `<dialog>` top layer.
@@ -65,7 +84,7 @@ Theme: `prefers-color-scheme` by default. `html[data-theme="light"|"dark"]` forc
 
 | Component | Class / file | Rules |
 | --- | --- | --- |
-| Button | `.btn` + `-filled` / `-tinted` / `-gray` / `-plain` / `-destructive`, `-lg` (50px, 14 radius, full width) | Min height 44. One filled button per view. Title Case labels, as in iOS ("Add to Bag"). |
+| Button | `.btn` + `-filled` / `-tinted` / `-gray` / `-plain` / `-destructive`, `-lg` (46px, 12 radius, full width), `-sm` (32px) | Height 40; 44px tap area on touch screens. One filled button per view. Title Case labels, as in iOS ("Add to Bag"). |
 | Segmented control | `SegmentedControl.tsx` | `role="radiogroup"`, roving tabindex, ←/→ (reversed in RTL), Home/End. 2–3 segments. Filters only, not navigation. |
 | Switch | `.switch` (`input[role=switch]`) | Inside a `<label class="list-row">` so the whole row toggles. Green when on. |
 | Inset grouped list | `.list` / `.list-row` / `.list-header` / `.list-footer` | Settings‑style. Separators are inset past the icon. Rows ≥ 52px. Chevron for navigation. |

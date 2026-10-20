@@ -152,7 +152,7 @@ Guest card with Sign In. Appearance: Theme (Auto/Light/Dark) and Layout directio
 ## 9. Accessibility
 
 - WCAG AA contrast in **both** themes. The tint is darkened for text (`#0066cc` on light, 5.6:1), and secondary text is `#6e6e73` (5.1:1).
-- Touch targets ≥ 44×44px, with ≥ 8px between them. The segmented control is 44px including its track.
+- Touch targets ≥ 44×44px, with ≥ 8px between them. Buttons are drawn compact (40px, 46px for the main action, 32px small); on touch screens their tap area, and the segmented control's, extends to 44px.
 - Visible 3px focus rings, a skip link, landmarks, one `h1` per page, sequential headings.
 - Prices carry a visually hidden "Face value" label before struck‑through amounts.
 - Segmented controls are radio groups with arrow‑key support (reversed in RTL). Switches use `role="switch"`.
