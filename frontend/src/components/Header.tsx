@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { LOCALE_COOKIE, localePath, stripLocale, type Locale } from "@/i18n/config";
 import { useI18n } from "@/i18n/I18nProvider";
-import { saveRecent, useStore } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { Icon } from "./Icon";
 import { useUI } from "./UIProvider";
 
@@ -63,8 +63,18 @@ function AccountLink({ tab }: { tab: Tab }) {
 }
 const ActiveAccountLink = () => <AccountLink tab={useTab()} />;
 
+function SearchLink({ tab }: { tab: Tab }) {
+  const { dict, href } = useI18n();
+  return (
+    <Link className="icon-btn desktop-only" href={href("/search")} aria-label={dict.nav.search} aria-current={tab === "search" ? "page" : undefined}>
+      <Icon name="search" />
+    </Link>
+  );
+}
+const ActiveSearchLink = () => <SearchLink tab={useTab()} />;
+
+/** Brand at the start, the sections centred, actions at the end. */
 export function Header() {
-  const router = useRouter();
   const { openSheet } = useUI();
   const { dict, href, plural, t, lang } = useI18n();
   const switchLanguage = useSwitchLanguage();
@@ -73,55 +83,38 @@ export function Header() {
   return (
     <header className="app-header">
       <div className="header-inner">
-        <Link className="brand" href={href("/")} aria-label={dict.nav.home}>
-          <span className="brand-mark" aria-hidden="true">
-            <Icon name="ticket" />
-          </span>
-          <span className="brand-name">{dict.brand}</span>
-        </Link>
+        <div className="header-start">
+          <Link className="brand" href={href("/")} aria-label={dict.nav.home}>
+            <span className="brand-mark" aria-hidden="true">
+              <Icon name="ticket" />
+            </span>
+            <span className="brand-name">{dict.brand}</span>
+          </Link>
+        </div>
         <Suspense fallback={<TopNav tab={null} />}>
           <ActiveTopNav />
         </Suspense>
-        <span className="header-spacer" />
-        <form
-          className="header-search"
-          role="search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const input = e.currentTarget.elements.namedItem("q") as HTMLInputElement;
-            const q = input.value.trim();
-            saveRecent(q);
-            input.value = "";
-            router.push(href(q ? `/search?q=${encodeURIComponent(q)}` : "/search"));
-          }}
-        >
-          <label className="visually-hidden" htmlFor="header-q">
-            {dict.nav.searchLabel}
-          </label>
-          <Icon name="search" />
-          <input id="header-q" name="q" type="search" placeholder={dict.nav.searchPlaceholder} autoComplete="off" enterKeyHint="search" />
-        </form>
-        <button
-          className="lang-btn"
-          type="button"
-          lang={lang === "ar" ? "en" : "ar"}
-          aria-label={dict.nav.switchLanguage}
-          onClick={() => switchLanguage()}
-        >
-          {dict.nav.otherLanguage}
-        </button>
-        <button
-          className="icon-btn"
-          type="button"
-          aria-label={count ? t(dict.nav.bag, { items: plural(dict.plurals.items, count) }) : dict.nav.bagEmpty}
-          onClick={() => openSheet({ step: "bag" })}
-        >
-          <Icon name="bag" />
-          {count > 0 && <span className="count-badge">{count > 9 ? "9+" : count}</span>}
-        </button>
-        <Suspense fallback={<AccountLink tab={null} />}>
-          <ActiveAccountLink />
-        </Suspense>
+        <div className="header-end">
+          <Suspense fallback={<SearchLink tab={null} />}>
+            <ActiveSearchLink />
+          </Suspense>
+          <button className="lang-btn" type="button" aria-label={dict.nav.switchLanguage} onClick={() => switchLanguage()}>
+            <Icon name="globe" />
+            <span lang={lang === "ar" ? "en" : "ar"}>{dict.nav.otherLanguageShort}</span>
+          </button>
+          <button
+            className="icon-btn"
+            type="button"
+            aria-label={count ? t(dict.nav.bag, { items: plural(dict.plurals.items, count) }) : dict.nav.bagEmpty}
+            onClick={() => openSheet({ step: "bag" })}
+          >
+            <Icon name="bag" />
+            {count > 0 && <span className="count-badge">{count > 9 ? "9+" : count}</span>}
+          </button>
+          <Suspense fallback={<AccountLink tab={null} />}>
+            <ActiveAccountLink />
+          </Suspense>
+        </div>
       </div>
     </header>
   );

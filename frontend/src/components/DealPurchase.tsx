@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { snapshot } from "@/lib/format";
 import { addToBag } from "@/lib/store";
@@ -8,12 +8,53 @@ import type { Deal } from "@/lib/types";
 import { Icon } from "./Icon";
 import { useUI } from "./UIProvider";
 
+export const firstInStock = (deal: Deal) => Math.max(0, deal.options.findIndex((o) => o.inStock !== false));
+
+/** The value cards ($25 / $50 / …), shared by the deal page and the quick-buy sheet. */
+export function OptionPicker({ deal, selected, onSelect }: { deal: Deal; selected: number; onSelect: (index: number) => void }) {
+  const { dict: d, fmt } = useI18n();
+  const name = useId(); // the deal page and the quick-buy sheet can both be open
+  return (
+    <fieldset className="options">
+      <legend className="field-label">{deal.options.length > 1 ? d.deal.chooseValue : d.deal.value}</legend>
+      <div className="option-grid">
+        {deal.options.map((o, i) => (
+          <label key={o.id} className="option">
+            <input
+              type="radio"
+              name={name}
+              value={o.id}
+              checked={i === selected}
+              disabled={o.inStock === false}
+              onChange={() => onSelect(i)}
+            />
+            <span className="option-body">
+              <span className="option-label">{o.label}</span>
+              <span className="option-price">
+                {o.inStock === false ? d.deal.soldOut : fmt.money(o.priceMinor)}
+                {o.inStock !== false && o.discountPercent && (
+                  <>
+                    {" · "}
+                    <bdi>−{o.discountPercent}%</bdi>
+                  </>
+                )}
+              </span>
+              <span className="option-check">
+                <Icon name="check" />
+              </span>
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 /** Option picker, live price and the purchase actions (inline on desktop, sticky bar on phones). */
 export function DealPurchase({ deal }: { deal: Deal }) {
   const { openSheet, toast } = useUI();
   const { dict: d, t, fmt } = useI18n();
-  const firstInStock = Math.max(0, deal.options.findIndex((o) => o.inStock !== false));
-  const [selected, setSelected] = useState(firstInStock);
+  const [selected, setSelected] = useState(() => firstInStock(deal));
   const option = deal.options[selected];
   const soldOut = option.inStock === false;
 
@@ -25,38 +66,7 @@ export function DealPurchase({ deal }: { deal: Deal }) {
 
   return (
     <>
-      <fieldset className="options">
-        <legend className="field-label">{deal.options.length > 1 ? d.deal.chooseValue : d.deal.value}</legend>
-        <div className="option-grid">
-          {deal.options.map((o, i) => (
-            <label key={o.id} className="option">
-              <input
-                type="radio"
-                name="option"
-                value={o.id}
-                checked={i === selected}
-                disabled={o.inStock === false}
-                onChange={() => setSelected(i)}
-              />
-              <span className="option-body">
-                <span className="option-label">{o.label}</span>
-                <span className="option-price">
-                  {o.inStock === false ? d.deal.soldOut : fmt.money(o.priceMinor)}
-                  {o.inStock !== false && o.discountPercent && (
-                    <>
-                      {" · "}
-                      <bdi>−{o.discountPercent}%</bdi>
-                    </>
-                  )}
-                </span>
-                <span className="option-check">
-                  <Icon name="check" />
-                </span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <OptionPicker deal={deal} selected={selected} onSelect={setSelected} />
 
       <div className="price-block" aria-live="polite">
         <span className="price-lg">{fmt.money(option.priceMinor)}</span>

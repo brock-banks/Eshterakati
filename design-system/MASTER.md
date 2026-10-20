@@ -88,7 +88,8 @@ Theme: `prefers-color-scheme` by default. `html[data-theme="light"|"dark"]` forc
 | Segmented control | `SegmentedControl.tsx` | `role="radiogroup"`, roving tabindex, ←/→ (reversed in RTL), Home/End. 2–3 segments. Filters only, not navigation. |
 | Switch | `.switch` (`input[role=switch]`) | Inside a `<label class="list-row">` so the whole row toggles. Green when on. |
 | Inset grouped list | `.list` / `.list-row` / `.list-header` / `.list-footer` | Settings‑style. Separators are inset past the icon. Rows ≥ 52px. Chevron for navigation. |
-| Deal card | `DealCard.tsx` | Phone: horizontal row. ≥640: vertical card in an auto‑fill grid. Shows "From" price, struck face value, save badge and countdown. |
+| Header | `Header.tsx` | Brand at the start, sections (Discover / Browse / My Codes) truly centred as a pill switcher (≥768), actions at the end: search, language (globe + "EN"/"ع"), bag, account. Phones keep brand, language and bag; the tab bar navigates. |
+| Deal card | `DealCard.tsx` | Gift‑card face (merchant gradient, monogram, name, one white "−13%" badge) over the title, price and a tinted **Buy** button. No shadow at rest; lifts on hover. Two per row on phones, auto‑fill grid ≥640. The card links to the deal; Buy sits above that link: one value in stock → checkout, several → the value picker sheet (`QuickBuySheet.tsx`). The countdown appears only in the last 24 hours, as orange text (`EndsSoon`). |
 | Hero | `.hero` | One per page. White "View Deal" button on the tinted gradient. |
 | Badge | `.badge-save` / `-ends` / `-verified` / `-neutral` | Always text, optionally with an icon. Colour is never the only signal. |
 | Option picker | `.option` radio cards | 2px tint ring and check when selected. Disabled with "Sold out" text. |

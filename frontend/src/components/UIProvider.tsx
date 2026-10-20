@@ -3,14 +3,17 @@
 import { usePathname } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useStore } from "@/lib/store";
-import type { BagLine, OwnedCode, PaymentMethod } from "@/lib/types";
+import type { BagLine, Deal, OwnedCode, PaymentMethod } from "@/lib/types";
 import { BagView, CheckoutView } from "./CheckoutSheet";
+import { PickView } from "./QuickBuySheet";
 import { ReportView } from "./ReportSheet";
 import { Icon } from "./Icon";
 
 export type SheetView =
   | { step: "bag" }
+  | { step: "pick"; deal: Deal; optionId?: number }
   | { step: "checkout"; from: "bag" | "express"; items: BagLine[] }
+  | { step: "checkout"; from: "pick"; deal: Deal; items: BagLine[] }
   | { step: "report"; code: OwnedCode };
 
 type ToastAction = { label: string; run: () => void };
@@ -103,6 +106,7 @@ export function UIProvider({ children, paymentMethods }: { children: ReactNode; 
       >
         <div className="sheet-panel">
           {view?.step === "bag" && <BagView />}
+          {view?.step === "pick" && <PickView key={view.deal.slug} deal={view.deal} optionId={view.optionId} />}
           {view?.step === "checkout" && <CheckoutView key={view.items.map((i) => i.optionId).join()} view={view} />}
           {view?.step === "report" && <ReportView key={view.code.id} code={view.code} />}
         </div>
