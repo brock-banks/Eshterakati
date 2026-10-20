@@ -534,31 +534,47 @@ body:has(.buy-bar) main { padding-block-end: calc(88px + env(safe-area-inset-bot
   --h: 260;
   position: relative; overflow: hidden;
   display: grid; gap: var(--s-6); align-items: end;
-  min-height: 340px; padding: var(--s-6);
+  padding: var(--s-6);
   border-radius: var(--r-xl);
   background:
-    radial-gradient(120% 90% at 100% 0%, hsl(calc(var(--h) + 40) 90% 60% / 0.55), transparent 60%),
-    linear-gradient(160deg, hsl(var(--h) 70% 42%), hsl(calc(var(--h) + 30) 75% 26%));
+    radial-gradient(120% 90% at 100% 0%, hsl(calc(var(--h) + 40) 90% 60% / 0.45), transparent 60%),
+    linear-gradient(160deg, hsl(var(--h) 60% 30%), hsl(calc(var(--h) + 30) 65% 18%));
   color: #fff;
-  box-shadow: var(--shadow-2);
   transition: transform var(--dur) var(--ease-out);
 }
-.hero:hover { text-decoration: none; }
-.hero:active { transform: scale(0.985); }
-.hero-art { position: relative; justify-self: end; }
-.hero-art .tile-xl { background: rgba(255, 255, 255, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.hero:has(.hero-link:active) { transform: scale(0.985); }
+/* The title link covers the banner; Buy sits above it. */
+.hero-link { color: inherit; }
+.hero-link:hover { text-decoration: none; }
+.hero-link::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.hero-link:focus-visible { outline: none; }
+.hero:has(.hero-link:focus-visible) { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.hero .btn { z-index: 2; }
+
+/* The deal's gift card, tilted, as the banner's art. */
+.hero-art { position: relative; justify-self: end; width: min(56%, 220px); }
+.hero-card {
+  border-radius: var(--r-lg); transform: rotate(-6deg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+[dir="rtl"] .hero-card { transform: rotate(6deg); }
+
 .hero-copy { position: relative; max-width: 34rem; }
 .hero-eyebrow { font: 600 0.75rem/1.3 var(--font-text); text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85; }
-.hero-title { margin-block-start: var(--s-1); font: 700 clamp(1.5rem, 4vw, 2.125rem)/1.15 var(--font-display); letter-spacing: -0.02em; }
+.hero-title { margin-block-start: var(--s-1); font: 700 clamp(1.5rem, 4vw, 2.125rem)/1.15 var(--font-display); letter-spacing: -0.02em; text-wrap: balance; }
 .hero-sub { margin-block-start: var(--s-2); font: var(--t-callout); opacity: 0.9; }
 .hero-cta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); margin-block-start: var(--s-5); }
-.hero-price { font: 600 0.9375rem/1.2 var(--font-text); font-variant-numeric: tabular-nums; }
-.hero-price s { opacity: 0.75; font-weight: 400; margin-inline-start: 6px; }
+.hero-price { display: flex; flex-direction: column; font: 700 1.1875rem/1.25 var(--font-display); font-variant-numeric: tabular-nums; }
+.hero-price .from { font: var(--t-caption); opacity: 0.8; }
+.hero-price s { font: var(--t-footnote); opacity: 0.7; }
 
 @media (min-width: 768px) {
-  .hero { min-height: 380px; padding: var(--s-10); }
-  .hero-art { position: absolute; inset-block-start: 50%; inset-inline-end: var(--s-12); transform: translateY(-50%); }
-  .hero-art .tile-xl { width: 168px; height: 168px; border-radius: 38px; font-size: 5rem; }
+  .hero { min-height: 340px; padding: var(--s-10); }
+  .hero-art { position: absolute; inset-block-start: 50%; inset-inline-end: var(--s-12); width: 300px; transform: translateY(-50%); }
+  .hero-card .deal-face-mono { width: 44px; height: 44px; border-radius: 12px; font-size: 1.25rem; inset-block-start: 14px; inset-inline-start: 14px; }
+  .hero-card .deal-face-off { inset-block-start: 14px; inset-inline-end: 14px; padding: 6px 10px; font-size: 0.875rem; }
+  .hero-card .deal-face-name { inset-inline: 16px; inset-block-end: 14px; font-size: 1.375rem; }
+  .hero-copy { max-width: calc(100% - 360px); }
 }
 
 /* Chips */

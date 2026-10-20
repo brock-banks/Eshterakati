@@ -8,35 +8,48 @@ import type { Deal } from "@/lib/types";
 import { EndsSoon } from "./EndsBadge";
 import { useUI } from "./UIProvider";
 
+/** Buy without opening the deal page: one value in stock → checkout, several → the value picker. */
+export function useQuickBuy(deal: Deal) {
+  const { openSheet } = useUI();
+  const inStock = deal.options.filter((x) => x.inStock !== false);
+  const buy = () =>
+    inStock.length > 1
+      ? openSheet({ step: "pick", deal })
+      : openSheet({ step: "checkout", from: "express", items: [{ ...snapshot(deal, inStock[0]), qty: 1 }] });
+  return { buy, available: inStock.length > 0 };
+}
+
+/** The merchant's gift card: colour, monogram, name and the best discount. Decorative. */
+export function GiftCardFace({ deal, className = "" }: { deal: Deal; className?: string }) {
+  const pct = bestPercent(deal);
+  return (
+    <div className={`deal-face ${className}`.trim()} style={{ "--h": deal.hue } as CSSProperties} aria-hidden="true">
+      <span className="deal-face-mono">{deal.merchant[0]}</span>
+      {pct !== null && (
+        <span className="deal-face-off">
+          <bdi>−{pct}%</bdi>
+        </span>
+      )}
+      <span className="deal-face-name">{deal.merchant}</span>
+    </div>
+  );
+}
+
 /**
  * A gift-card "face" over the price and a Buy button. The whole card links to the deal;
  * Buy sits above that link and opens checkout directly (via a value picker when needed).
  */
 export function DealCard({ deal }: { deal: Deal }) {
-  const { openSheet } = useUI();
   const { dict: d, t, fmt, href } = useI18n();
   const o = cheapest(deal);
   const several = deal.options.length > 1;
   const pct = bestPercent(deal);
-  const inStock = deal.options.filter((x) => x.inStock !== false);
+  const { buy, available } = useQuickBuy(deal);
   const name = `${deal.merchant} ${deal.title}`;
 
-  const buy = () =>
-    inStock.length > 1
-      ? openSheet({ step: "pick", deal })
-      : openSheet({ step: "checkout", from: "express", items: [{ ...snapshot(deal, inStock[0]), qty: 1 }] });
-
   return (
-    <article className="deal-card" style={{ "--h": deal.hue } as CSSProperties}>
-      <div className="deal-face" aria-hidden="true">
-        <span className="deal-face-mono">{deal.merchant[0]}</span>
-        {pct !== null && (
-          <span className="deal-face-off">
-            <bdi>−{pct}%</bdi>
-          </span>
-        )}
-        <span className="deal-face-name">{deal.merchant}</span>
-      </div>
+    <article className="deal-card">
+      <GiftCardFace deal={deal} />
       <div className="deal-card-body">
         <Link className="deal-card-link" href={href(`/deals/${deal.slug}`)}>
           <span className="visually-hidden">{deal.merchant} </span>
@@ -60,11 +73,11 @@ export function DealCard({ deal }: { deal: Deal }) {
           <button
             className="btn btn-tinted btn-sm"
             type="button"
-            disabled={!inStock.length}
-            aria-label={inStock.length ? t(d.deal.buyLabel, { name }) : undefined}
+            disabled={!available}
+            aria-label={available ? t(d.deal.buyLabel, { name }) : undefined}
             onClick={buy}
           >
-            {inStock.length ? d.deal.buy : d.deal.soldOut}
+            {available ? d.deal.buy : d.deal.soldOut}
           </button>
         </div>
       </div>
