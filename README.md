@@ -69,11 +69,18 @@ number or receipt image can't pay for two orders.
 
 ## Deploying
 
-- Put the storefront behind a reverse proxy (nginx, Caddy, a load balancer) that **sets** `X-Forwarded-For`
-  to the client address (for nginx, `proxy_set_header X-Forwarded-For $remote_addr;`). The storefront
-  forwards it to the API, and `TRUSTED_PROXIES` in `backend/.env` must list the storefront server's
-  address. Rate limits are per shopper; without this setup, every customer shares one allowance.
-- Run `php artisan schedule:work` (or a cron job for `schedule:run`) so unpaid orders release their codes.
+Step‑by‑step guide: **[docs/DEPLOY.md](docs/DEPLOY.md)**. The storefront goes on Vercel (root
+directory `frontend`) and the API and `/admin` on Railway (root directory `backend`, built from
+`backend/Dockerfile` with a volume at `/data`).
+
+- The storefront calls the API from its server. Hosted, it names each shopper in `X-Shopper-IP`,
+  vouched for by a shared key (`STOREFRONT_KEY` on Vercel, `SHOP_STOREFRONT_KEY` on the API), so
+  rate limits apply per shopper. Without the key, every customer shares one allowance.
+- Self‑hosting without a proxy in front of the API instead: put the storefront behind a reverse
+  proxy that **sets** `X-Forwarded-For` to the client address, and list the storefront server's
+  address in `TRUSTED_PROXIES`.
+- The Docker image runs the scheduler itself. Elsewhere, run `php artisan schedule:work` (or a cron
+  job for `schedule:run`) so unpaid orders release their codes.
 
 ## Checks
 

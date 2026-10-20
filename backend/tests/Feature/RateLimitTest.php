@@ -69,4 +69,39 @@ class RateLimitTest extends TestCase
         }
         $this->placeOrderAs('10.0.0.99')->assertTooManyRequests();
     }
+
+    /** In production the storefront reaches the API through the host's proxy and names the shopper with its key. */
+    private function placeOrderViaProxy(string $shopperIp, string $key): TestResponse
+    {
+        $this->serverVariables = ['REMOTE_ADDR' => '100.64.0.2'];
+
+        return $this->withHeaders(['X-Storefront-Key' => $key, 'X-Shopper-IP' => $shopperIp])->postJson('/api/v1/orders', [
+            'phone' => '0912345678',
+            'payment_method' => 'bankak',
+            'items' => [['option_id' => Deal::where('slug', 'oasis-stays')->first()->options[0]->id, 'quantity' => 1]],
+        ]);
+    }
+
+    public function test_the_storefront_key_lets_the_api_limit_each_shopper_behind_a_proxy(): void
+    {
+        config(['shop.storefront_key' => 'secret-key']);
+        $limit = config('shop.rate_limits.place-order');
+        for ($i = 0; $i < $limit; $i++) {
+            $this->placeOrderViaProxy('197.252.1.10', 'secret-key')->assertCreated();
+        }
+
+        $this->placeOrderViaProxy('197.252.1.10', 'secret-key')->assertTooManyRequests();
+        $this->placeOrderViaProxy('41.95.7.20', 'secret-key')->assertCreated();
+    }
+
+    public function test_a_wrong_storefront_key_does_not_buy_a_fresh_allowance(): void
+    {
+        config(['shop.storefront_key' => 'secret-key']);
+        $limit = config('shop.rate_limits.place-order');
+        for ($i = 0; $i < $limit; $i++) {
+            $this->placeOrderViaProxy('10.0.0.'.$i, 'guess')->assertCreated();
+        }
+
+        $this->placeOrderViaProxy('10.0.0.99', 'guess')->assertTooManyRequests();
+    }
 }
