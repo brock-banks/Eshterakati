@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { plural, searchDeals } from "@/lib/format";
+import { useI18n } from "@/i18n/I18nProvider";
+import { searchDeals } from "@/lib/format";
 import { saveRecent, update, useStore } from "@/lib/store";
 import type { Category, Deal } from "@/lib/types";
 import { DealGrid } from "./DealCard";
 import { EmptyState } from "./EmptyState";
 import { Icon } from "./Icon";
 
-const SUGGESTED = ["gift card", "season pass", "VPN", "flight", "family plan", "groceries"];
-
 export function SearchView({ deals, categories }: { deals: Deal[]; categories: Category[] }) {
+  const { dict: d, t, plural, href } = useI18n();
   const initial = useSearchParams().get("q") ?? "";
   const [q, setQ] = useState(initial);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +41,7 @@ export function SearchView({ deals, categories }: { deals: Deal[]; categories: C
         }}
       >
         <label className="visually-hidden" htmlFor="search-q">
-          Search coupon codes
+          {d.search.label}
         </label>
         <Icon name="search" className="icon-search" />
         <input
@@ -50,7 +50,7 @@ export function SearchView({ deals, categories }: { deals: Deal[]; categories: C
           type="search"
           value={q}
           onChange={(e) => change(e.target.value)}
-          placeholder="Merchants, categories and more"
+          placeholder={d.search.placeholder}
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
@@ -60,7 +60,7 @@ export function SearchView({ deals, categories }: { deals: Deal[]; categories: C
           <button
             className="clear"
             type="button"
-            aria-label="Clear search"
+            aria-label={d.search.clear}
             onClick={() => {
               change("");
               inputRef.current?.focus();
@@ -77,9 +77,9 @@ export function SearchView({ deals, categories }: { deals: Deal[]; categories: C
             {recent.length > 0 && (
               <>
                 <div className="section-head" style={{ marginBlockStart: "var(--s-6)" }}>
-                  <h2 className="section-title">Recent</h2>
+                  <h2 className="section-title">{d.search.recent}</h2>
                   <button className="btn btn-plain" type="button" onClick={() => update(() => ({ recent: [] }))}>
-                    Clear
+                    {d.search.clearRecent}
                   </button>
                 </div>
                 <ul className="list" role="list">
@@ -98,10 +98,10 @@ export function SearchView({ deals, categories }: { deals: Deal[]; categories: C
               </>
             )}
             <div className="section-head" style={{ marginBlockStart: "var(--s-8)" }}>
-              <h2 className="section-title">Suggested</h2>
+              <h2 className="section-title">{d.search.suggested}</h2>
             </div>
             <ul className="chips" role="list">
-              {SUGGESTED.map((s) => (
+              {d.search.suggestions.map((s) => (
                 <li key={s}>
                   <button className="chip" type="button" onClick={() => change(s)}>
                     <Icon name="search" />
@@ -114,7 +114,7 @@ export function SearchView({ deals, categories }: { deals: Deal[]; categories: C
         ) : results.length ? (
           <>
             <p className="result-count" style={{ marginBlock: "var(--s-4) var(--s-3)" }}>
-              {plural(results.length, "result")}
+              {plural(d.plurals.results, results.length)}
             </p>
             {/* Opening a result remembers the search. */}
             <div onClickCapture={(e) => (e.target as HTMLElement).closest("a") && saveRecent(term)}>
@@ -124,14 +124,14 @@ export function SearchView({ deals, categories }: { deals: Deal[]; categories: C
         ) : (
           <EmptyState
             icon="search"
-            title={`No results for “${term}”`}
+            title={t(d.search.noResults, { q: term })}
             action={
-              <Link className="btn btn-tinted" href="/browse">
-                Browse Categories
+              <Link className="btn btn-tinted" href={href("/browse")}>
+                {d.search.browseCategories}
               </Link>
             }
           >
-            Check the spelling, or try a merchant name or a category like “gaming”.
+            {d.search.noResultsBody}
           </EmptyState>
         )}
       </div>

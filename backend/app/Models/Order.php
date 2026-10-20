@@ -16,8 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
 #[Fillable([
-    'reference', 'access_token', 'phone', 'email', 'status', 'currency', 'total_minor',
-    'payment_method', 'expires_at', 'rejection_reason', 'paid_at', 'reviewed_by',
+    'reference', 'access_token', 'phone', 'email', 'locale', 'status', 'currency', 'total_minor',
+    'payment_method', 'expires_at', 'rejection_code', 'rejection_note', 'paid_at', 'reviewed_by',
 ])]
 #[Hidden(['access_token'])]
 class Order extends Model
@@ -105,7 +105,30 @@ class Order extends Model
 
     public function orderUrl(): string
     {
-        return rtrim(config('shop.frontend_url'), '/')."/orders/{$this->public_id}?t={$this->access_token}";
+        return rtrim(config('shop.frontend_url'), '/')."/{$this->locale}/orders/{$this->public_id}?t={$this->access_token}";
+    }
+
+    /**
+     * Why the last receipt was rejected, in the current locale, followed by the admin's note.
+     */
+    public function rejectionMessage(): ?string
+    {
+        if (! $this->rejection_code) {
+            return null;
+        }
+
+        return trim(__("shop.rejection.{$this->rejection_code}").' '.$this->rejection_note);
+    }
+
+    /**
+     * The payment deadline as customers in Sudan read it, e.g. "5:57 PM, Oct 20".
+     */
+    public function deadlineForHumans(): string
+    {
+        $locale = app()->getLocale();
+
+        return $this->expires_at->timezone(config('shop.timezone'))->locale($locale)
+            ->isoFormat($locale === 'ar' ? 'h:mm A، D MMMM' : 'h:mm A, MMM D');
     }
 
     /**

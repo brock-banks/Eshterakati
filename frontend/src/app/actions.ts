@@ -1,5 +1,6 @@
 "use server";
 
+import { getDictionary, hasLocale, type Locale } from "@/i18n";
 import { API_URL } from "@/lib/api";
 import type { Order } from "@/lib/types";
 
@@ -13,6 +14,7 @@ export type ActionError = { ok: false; message: string; fields?: Partial<Record<
 export type OrderResult = { ok: true; order: Order; token?: string } | ActionError;
 
 export type OrderInput = {
+  lang: Locale;
   phone: string;
   email: string;
   paymentMethod: string;
@@ -74,11 +76,9 @@ const toOrder = (o: ApiOrder): Order => ({
   })),
 });
 
-const OFFLINE: ActionError = {
-  ok: false,
-  message: "Checkout needs the store API. Set API_URL in frontend/.env.local and start the Laravel backend.",
-};
-const UNREACHABLE: ActionError = { ok: false, message: "We couldn’t reach the store. Check your connection and try again." };
+const langOf = (value: unknown): Locale => (typeof value === "string" && hasLocale(value) ? value : "ar");
+const errors = (lang: Locale) => getDictionary(lang).errors;
+const fail = (message: string): ActionError => ({ ok: false, message });
 
 const API_FIELDS: Record<string, Field> = {
   phone: "phone",
@@ -88,7 +88,7 @@ const API_FIELDS: Record<string, Field> = {
   transaction_reference: "transactionReference",
 };
 
-async function toError(res: Response, fallback: string): Promise<ActionError> {
+async function toError(res: Response, lang: Locale, fallback: string): Promise<ActionError> {
   if (res.status === 422) {
     const { errors = {} } = (await res.json()) as { errors?: Record<string, string[]> };
     const fields: Partial<Record<Field, string>> = {};
@@ -100,18 +100,19 @@ async function toError(res: Response, fallback: string): Promise<ActionError> {
     }
     return { ok: false, message: message || fallback, fields };
   }
-  if (res.status === 429) return { ok: false, message: "Too many attempts in a short time. Wait a minute, then try again." };
-  if (res.status === 404) return { ok: false, message: "We couldn’t find this order. Open it from the link in your email or from My Codes." };
-  return { ok: false, message: fallback };
+  if (res.status === 429) return fail(errors(lang).tooMany);
+  if (res.status === 404) return fail(errors(lang).orderNotFound);
+  return fail(fallback);
 }
 
 export async function createOrder(input: OrderInput): Promise<OrderResult> {
-  if (!API_URL) return OFFLINE;
+  const lang = langOf(input?.lang);
+  if (!API_URL) return fail(errors(lang).offline);
   let res: Response;
   try {
     res = await fetch(`${API_URL}/orders`, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      headers: { Accept: "application/json", "Content-Type": "application/json", "Accept-Language": lang },
       body: JSON.stringify({
         phone: String(input?.phone ?? ""),
         email: String(input?.email ?? ""),
@@ -121,38 +122,41 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
       cache: "no-store",
     });
   } catch {
-    return UNREACHABLE;
+    return fail(errors(lang).unreachable);
   }
-  if (res.status !== 201) return toError(res, "We couldn’t place your order. Please try again.");
+  if (res.status !== 201) return toError(res, lang, errors(lang).placeFailed);
   const { data } = (await res.json()) as { data: ApiOrder };
   return { ok: true, order: toOrder(data), token: data.access_token };
 }
 
-export async function getOrder(id: string, token: string): Promise<OrderResult> {
-  if (!API_URL) return OFFLINE;
-  if (!/^[0-9A-Za-z]{26}$/.test(id)) return { ok: false, message: "That order link isn’t valid." };
+export async function getOrder(id: string, token: string, langInput: Locale): Promise<OrderResult> {
+  const lang = langOf(langInput);
+  if (!API_URL) return fail(errors(lang).offline);
+  if (!/^[0-9A-Za-z]{26}$/.test(id)) return fail(errors(lang).badLink);
   let res: Response;
   try {
     res = await fetch(`${API_URL}/orders/${id}`, {
-      headers: { Accept: "application/json", "X-Order-Token": String(token) },
+      headers: { Accept: "application/json", "X-Order-Token": String(token), "Accept-Language": lang },
       cache: "no-store",
     });
   } catch {
-    return UNREACHABLE;
+    return fail(errors(lang).unreachable);
   }
-  if (!res.ok) return toError(res, "We couldn’t load this order. Please try again.");
+  if (!res.ok) return toError(res, lang, errors(lang).loadFailed);
   return { ok: true, order: toOrder(((await res.json()) as { data: ApiOrder }).data) };
 }
 
-/** FormData: id, token, receipt (image), transaction_reference. */
+/** FormData: lang, id, token, receipt (image), transaction_reference. */
 export async function submitReceipt(form: FormData): Promise<OrderResult> {
-  if (!API_URL) return OFFLINE;
+  const lang = langOf(form.get("lang"));
+  if (!API_URL) return fail(errors(lang).offline);
   const id = String(form.get("id") ?? "");
   const token = String(form.get("token") ?? "");
   const receipt = form.get("receipt");
-  if (!/^[0-9A-Za-z]{26}$/.test(id)) return { ok: false, message: "That order link isn’t valid." };
+  if (!/^[0-9A-Za-z]{26}$/.test(id)) return fail(errors(lang).badLink);
   if (!(receipt instanceof File) || receipt.size === 0) {
-    return { ok: false, message: "Add a screenshot of your receipt.", fields: { receipt: "Add a screenshot of your receipt." } };
+    const message = getDictionary(lang).order.receiptRequired;
+    return { ok: false, message, fields: { receipt: message } };
   }
 
   const body = new FormData();
@@ -163,13 +167,13 @@ export async function submitReceipt(form: FormData): Promise<OrderResult> {
   try {
     res = await fetch(`${API_URL}/orders/${id}/receipt`, {
       method: "POST",
-      headers: { Accept: "application/json", "X-Order-Token": token },
+      headers: { Accept: "application/json", "X-Order-Token": token, "Accept-Language": lang },
       body,
       cache: "no-store",
     });
   } catch {
-    return UNREACHABLE;
+    return fail(errors(lang).unreachable);
   }
-  if (!res.ok) return toError(res, "We couldn’t upload your receipt. Please try again.");
+  if (!res.ok) return toError(res, lang, errors(lang).uploadFailed);
   return { ok: true, order: toOrder(((await res.json()) as { data: ApiOrder }).data) };
 }

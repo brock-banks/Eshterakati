@@ -24,10 +24,11 @@ class PaymentRejected extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("We couldn’t confirm your payment · {$this->order->reference}")
-            ->greeting('We couldn’t confirm your payment')
-            ->line($this->order->rejection_reason)
-            ->line('Your codes are still reserved until '.$this->order->expires_at->format('g:i A, M j').'. Upload a new receipt to finish your order.')
-            ->action('Upload a new receipt', $this->order->orderUrl());
+            ->subject(__('shop.mail.rejected.subject', ['reference' => $this->order->reference]))
+            ->greeting(__('shop.mail.rejected.greeting'))
+            ->line($this->order->rejectionMessage())
+            ->line(__('shop.mail.rejected.still_reserved', ['time' => $this->order->deadlineForHumans()]))
+            ->action(__('shop.mail.rejected.action'), $this->order->orderUrl())
+            ->salutation(__('shop.mail.salutation'));
     }
 }

@@ -28,20 +28,21 @@ class OrderCodes extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $message = (new MailMessage)
-            ->subject("Your codes are ready · {$this->order->reference}")
-            ->greeting('Payment confirmed — your codes are ready')
-            ->line('Keep this email somewhere safe. Each code works once.');
+            ->subject(__('shop.mail.codes.subject', ['reference' => $this->order->reference]))
+            ->greeting(__('shop.mail.codes.greeting'))
+            ->line(__('shop.mail.codes.keep_safe'));
 
         foreach ($this->order->items as $item) {
             $deal = $item->option->deal;
             foreach ($item->codes as $code) {
-                $message->line("**{$deal->merchant} {$deal->title} · {$item->option->label}**: `{$code->code}`");
+                $message->line("**{$deal->merchant} {$deal->localized('title')} · {$item->option->localized('label')}**: `{$code->code}`");
             }
         }
 
         return $message
-            ->line('Total paid: '.Money::format($this->order->total_minor, $this->order->currency))
-            ->action('View your order', $this->order->orderUrl())
-            ->line('If a code doesn’t work, reply to this email within 30 days for a full refund.');
+            ->line(__('shop.mail.codes.total', ['amount' => Money::format($this->order->total_minor, $this->order->currency)]))
+            ->action(__('shop.mail.codes.action'), $this->order->orderUrl())
+            ->line(__('shop.mail.codes.refund'))
+            ->salutation(__('shop.mail.salutation'));
     }
 }

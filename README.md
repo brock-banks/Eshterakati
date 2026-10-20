@@ -3,6 +3,7 @@
 A store in Sudan for gift cards and subscription codes, priced in Sudanese pounds.
 Customers pay by bank transfer from Bankak, O‑Cash or Fawry, upload a screenshot of the
 receipt, and get their codes as soon as the store approves the payment. Accounts are optional.
+The storefront is **Arabic by default** (`/ar`, right‑to‑left) with English at `/en`.
 
 | Folder | What's in it |
 | --- | --- |
@@ -57,6 +58,13 @@ Order states: `awaiting_payment → in_review → paid`. A rejection sends the o
 on sale. Prices are integers in minor units (`*_minor`). Codes are encrypted at rest. A transaction
 number or receipt image can't pay for two orders.
 
+## Languages
+
+- **Storefront:** every route lives under `/ar` or `/en` (`frontend/src/app/[lang]`). `/` and other un‑prefixed links go to Arabic, or to the language last picked with the header or Account switcher (saved in the `lang` cookie). UI strings are in `frontend/src/i18n/dictionaries/{en,ar}.ts`. English is the source of truth, and TypeScript fails the build if Arabic is missing a key.
+- **Catalogue content:** categories, deals and options have Arabic fields (`name_ar`, `title_ar`, `blurb_ar`, `region_ar`, `label_ar`), edited in the admin. When an Arabic field is empty the English one is shown.
+- **API:** sends `Accept-Language: ar|en` and gets localised copy and validation messages back. Each order stores its language, so its emails (right‑to‑left in Arabic) and links match.
+- **Admin:** stays in English. Rejection reasons are stored as codes and shown to customers in their language (`backend/lang/{en,ar}/shop.php`).
+
 ## Checks
 
 ```bash
@@ -66,7 +74,7 @@ cd frontend && npm run lint && npx tsc --noEmit && npm run build
 
 ## Not built yet
 
-Arabic translation, customer accounts (orders are kept on the device and in the email link),
+Customer accounts (orders are kept on the device and in the email link),
 "report a problem" and refunds, and a production mail provider (local dev writes emails to the log).
 Merchants in the seed data are fictional, and prices use a placeholder exchange rate. Set real
 prices in the admin. See "Still open" in the UX spec.

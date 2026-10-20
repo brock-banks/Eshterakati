@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
 import { getOrder } from "@/app/actions";
-import { clockTime, money, shortDate } from "@/lib/format";
+import { useI18n } from "@/i18n/I18nProvider";
 import { readState, setCodeStatus, syncOrder, useStore } from "@/lib/store";
 import type { OrderRef, OwnedCode } from "@/lib/types";
 import { CodeField } from "./CodeField";
@@ -17,6 +17,7 @@ import { useUI } from "./UIProvider";
 type Show = "active" | "used";
 
 export function CodesView() {
+  const { dict: d, t, href } = useI18n();
   const initial = useSearchParams().get("show");
   const [show, setShow] = useState<Show>(initial === "used" ? "used" : "active");
   const codes = useStore((s) => s.codes);
@@ -36,10 +37,10 @@ export function CodesView() {
       <OrdersInProgress />
       <div className="toolbar">
         <SegmentedControl
-          label="Filter codes"
+          label={d.codes.filter}
           segments={[
-            { value: "active", label: `Active (${counts.active})` },
-            { value: "used", label: `Used (${counts.used})` },
+            { value: "active", label: t(d.codes.active, { n: counts.active }) },
+            { value: "used", label: t(d.codes.used, { n: counts.used }) },
           ]}
           value={show}
           onChange={change}
@@ -54,18 +55,18 @@ export function CodesView() {
       ) : show === "active" ? (
         <EmptyState
           icon="ticket"
-          title="No active codes"
+          title={d.codes.emptyActiveTitle}
           action={
-            <Link className="btn btn-filled" href="/">
-              Discover Deals
+            <Link className="btn btn-filled" href={href("/")}>
+              {d.bag.discover}
             </Link>
           }
         >
-          Codes appear here as soon as we confirm your payment, ready to copy and redeem.
+          {d.codes.emptyActiveBody}
         </EmptyState>
       ) : (
-        <EmptyState icon="check-circle" title="Nothing here yet">
-          When you mark a code as used, it moves here so your active list stays tidy.
+        <EmptyState icon="check-circle" title={d.codes.emptyUsedTitle}>
+          {d.codes.emptyUsedBody}
         </EmptyState>
       )}
     </>
@@ -74,10 +75,11 @@ export function CodesView() {
 
 function Pass({ code: c }: { code: OwnedCode }) {
   const { toast } = useUI();
+  const { dict: d, t, fmt, href } = useI18n();
   const used = c.status === "used";
   const move = (status: OwnedCode["status"]) => {
     setCodeStatus(c.id, status);
-    toast(status === "used" ? "Moved to Used" : "Moved to Active", { label: "Undo", run: () => setCodeStatus(c.id, c.status) });
+    toast(status === "used" ? d.codes.movedUsed : d.codes.movedActive, { label: d.common.undo, run: () => setCodeStatus(c.id, c.status) });
   };
 
   return (
@@ -95,8 +97,9 @@ function Pass({ code: c }: { code: OwnedCode }) {
       <div className="pass-body">
         <CodeField code={c.code} merchant={c.merchant} />
         <p className="pass-meta">
-          {used && "Marked as used · "}Bought {shortDate(c.purchasedAt)}
-          {c.expiresAt && ` · Valid until ${shortDate(c.expiresAt)}`}
+          {used && d.codes.markedUsed}
+          {t(d.codes.bought, { date: fmt.shortDate(c.purchasedAt) })}
+          {c.expiresAt && t(d.codes.validUntil, { date: fmt.shortDate(c.expiresAt) })}
         </p>
       </div>
       <div className="pass-perf" aria-hidden="true" />
@@ -104,21 +107,21 @@ function Pass({ code: c }: { code: OwnedCode }) {
         <div className="pass-actions">
           {used ? (
             <button className="btn btn-plain btn-sm" type="button" onClick={() => move("active")}>
-              Move Back to Active
+              {d.codes.moveBack}
             </button>
           ) : (
             <button className="btn btn-plain btn-sm" type="button" onClick={() => move("used")}>
               <Icon name="check-circle" />
-              Mark as Used
+              {d.codes.markUsed}
             </button>
           )}
-          <Link className="btn btn-plain btn-sm" href={`/deals/${c.dealSlug}#redeem-h`}>
+          <Link className="btn btn-plain btn-sm" href={href(`/deals/${c.dealSlug}#redeem-h`)}>
             <Icon name="info" />
-            How to Redeem
+            {d.codes.howToRedeem}
           </Link>
-          <button className="btn btn-plain btn-sm" type="button" onClick={() => toast("Problem reports are coming soon. Until then, reply to your order email.")}>
+          <button className="btn btn-plain btn-sm" type="button" onClick={() => toast(d.codes.reportSoon)}>
             <Icon name="flag" />
-            Report a Problem
+            {d.codes.report}
           </button>
         </div>
       </div>
@@ -127,14 +130,11 @@ function Pass({ code: c }: { code: OwnedCode }) {
 }
 
 const PENDING: OrderRef["status"][] = ["awaiting_payment", "in_review"];
-const STATUS_TEXT: Partial<Record<OrderRef["status"], string>> = {
-  awaiting_payment: "Waiting for your transfer",
-  in_review: "We’re checking your payment",
-};
 
 /** Orders placed on this device that still need the shopper, or us. Refreshes while open. */
 function OrdersInProgress() {
   const { toast } = useUI();
+  const { dict: d, t, fmt, href, lang } = useI18n();
   const orders = useStore((s) => s.orders);
   const pending = orders.filter((o) => PENDING.includes(o.status));
   const key = pending.map((o) => o.id).join();
@@ -143,43 +143,47 @@ function OrdersInProgress() {
     if (!key) return;
     const refresh = async () => {
       for (const ref of readState().orders.filter((o) => PENDING.includes(o.status))) {
-        const result = await getOrder(ref.id, ref.token);
+        const result = await getOrder(ref.id, ref.token, lang);
         if (!result.ok) continue;
         syncOrder(result.order);
-        if (result.order.status === "paid") toast(`Your codes for ${ref.reference} are ready`);
+        if (result.order.status === "paid") toast(t(d.codes.ready, { reference: ref.reference }));
       }
     };
     void refresh();
     const timer = window.setInterval(refresh, 30_000);
     return () => window.clearInterval(timer);
-  }, [key, toast]);
+  }, [key, toast, lang, t, d]);
 
   if (!pending.length) return null;
   return (
     <section aria-labelledby="pending-h" style={{ marginBlockEnd: "var(--s-8)" }}>
       <h2 className="list-header" id="pending-h" style={{ marginBlockStart: 0 }}>
-        Orders in progress
+        {d.codes.inProgress}
       </h2>
       <ul className="list order-list" role="list">
-        {pending.map((o) => (
-          <li key={o.id}>
-            <Link className="list-row has-icon" href={`/orders/${o.id}`}>
-              <span className="row-icon" style={{ "--h": o.status === "in_review" ? 32 : 210 } as CSSProperties}>
-                <Icon name={o.status === "in_review" ? "clock" : "wallet"} />
-              </span>
-              <span className="list-row-main">
-                <span className="list-row-title">
-                  {o.reference} · {money(o.totalMinor)}
+        {pending.map((o) => {
+          const reviewing = o.status === "in_review";
+          return (
+            <li key={o.id}>
+              <Link className="list-row has-icon" href={href(`/orders/${o.id}`)}>
+                <span className="row-icon" style={{ "--h": reviewing ? 32 : 210 } as CSSProperties}>
+                  <Icon name={reviewing ? "clock" : "wallet"} />
                 </span>
-                <span className="list-row-sub">
-                  {STATUS_TEXT[o.status]} · placed {clockTime(o.createdAt)}
+                <span className="list-row-main">
+                  <span className="list-row-title">
+                    <bdi>{o.reference}</bdi>
+                  </span>
+                  <span className="list-row-sub">
+                    {fmt.money(o.totalMinor)} · {reviewing ? d.codes.inReview : d.codes.awaiting}
+                  </span>
+                  <span className="list-row-sub">{t(d.codes.placedAt, { time: fmt.clockTime(o.createdAt) })}</span>
                 </span>
-              </span>
-              <span className="badge badge-neutral">{o.status === "in_review" ? "In review" : "Pay now"}</span>
-              <Icon name="chevron-right" className="chev flip-rtl" />
-            </Link>
-          </li>
-        ))}
+                <span className="badge badge-neutral">{reviewing ? d.codes.inReviewBadge : d.codes.payNow}</span>
+                <Icon name="chevron-right" className="chev flip-rtl" />
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

@@ -33,6 +33,9 @@ class CategoryResource extends Resource
                     ->required(),
                 TextInput::make('name')
                     ->required(),
+                TextInput::make('name_ar')
+                    ->label('Name (Arabic)')
+                    ->extraInputAttributes(['dir' => 'rtl']),
                 // Must be one of the icons the storefront ships (frontend/src/components/Icon.tsx).
                 Select::make('icon')
                     ->options(['tv' => 'TV', 'gamepad' => 'Gamepad', 'utensils' => 'Utensils', 'tag' => 'Tag', 'plane' => 'Plane', 'layers' => 'Layers'])
@@ -42,6 +45,9 @@ class CategoryResource extends Resource
                     ->numeric(),
                 TextInput::make('blurb')
                     ->required(),
+                TextInput::make('blurb_ar')
+                    ->label('Blurb (Arabic)')
+                    ->extraInputAttributes(['dir' => 'rtl']),
                 TextInput::make('sort_order')
                     ->required()
                     ->numeric()
@@ -58,6 +64,9 @@ class CategoryResource extends Resource
                     ->searchable(),
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('name_ar')
+                    ->label('Arabic')
+                    ->placeholder('—'),
                 TextColumn::make('icon')
                     ->searchable(),
                 TextColumn::make('hue')

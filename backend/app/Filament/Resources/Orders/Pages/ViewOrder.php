@@ -21,14 +21,6 @@ class ViewOrder extends ViewRecord
 {
     protected static string $resource = OrderResource::class;
 
-    /** Customer-facing reasons; they appear on the order page and in the email. */
-    private const REJECTION_REASONS = [
-        'not_received' => 'We couldn’t find this transfer in our account yet. If you sent it just now, wait a few minutes, then upload the receipt again.',
-        'amount' => 'The amount on the receipt doesn’t match the order total. Transfer the remaining amount, then upload both receipts in one screenshot.',
-        'unreadable' => 'We couldn’t read the receipt. Upload a clear screenshot that shows the amount, date and transaction number.',
-        'wrong_account' => 'The transfer went to a different account. Check the account number on the order page and try again.',
-    ];
-
     protected function getHeaderActions(): array
     {
         return [
@@ -62,15 +54,14 @@ class ViewOrder extends ViewRecord
                             'unreadable' => 'Receipt is unreadable',
                             'wrong_account' => 'Sent to the wrong account',
                         ])
-                        ->helperText('The customer sees a full explanation of the reason you pick.')
+                        ->helperText('The customer sees a full explanation of this reason in their language (lang/*/shop.php).')
                         ->required(),
                     Textarea::make('note')
-                        ->label('Add a note (optional, shown to the customer)')
+                        ->label('Add a note (optional, shown to the customer as written)')
                         ->maxLength(200),
                 ])
                 ->action(function (array $data, ReviewReceipt $review) {
-                    $reason = trim(self::REJECTION_REASONS[$data['reason']].' '.($data['note'] ?? ''));
-                    $review->reject($this->record, auth()->user(), $reason);
+                    $review->reject($this->record, auth()->user(), $data['reason'], $data['note'] ?? null);
                     $this->record->refresh();
                     Notification::make()->warning()->title("Receipt rejected for {$this->record->reference}")->send();
                 }),

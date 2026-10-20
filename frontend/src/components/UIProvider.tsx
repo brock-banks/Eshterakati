@@ -134,16 +134,14 @@ function ToastRegion({ toast, onDismiss }: { toast: Toast | null; onDismiss: () 
   );
 }
 
-/** Mirrors the stored appearance preferences onto <html>. The inline script in the layout applies them before first paint. */
+/** Mirrors the stored theme onto <html>. The inline script in the layout applies it before first paint. */
 function ThemeSync() {
   const theme = useStore((s) => s.theme);
-  const dir = useStore((s) => s.dir);
   useEffect(() => {
     const root = document.documentElement;
     if (theme === "system") delete root.dataset.theme;
     else root.dataset.theme = theme;
-    root.dir = dir;
-  }, [theme, dir]);
+  }, [theme]);
   return null;
 }
 
@@ -154,7 +152,9 @@ function RouteFocus() {
   useEffect(() => {
     if (previous.current === pathname) return;
     previous.current = pathname;
-    document.querySelector<HTMLElement>("main h1")?.focus({ preventScroll: true });
+    // Previous pages can stay mounted but hidden (React Activity), so pick the visible heading.
+    const headings = Array.from(document.querySelectorAll<HTMLElement>("main h1"));
+    headings.find((h) => h.checkVisibility())?.focus({ preventScroll: true });
   }, [pathname]);
   return null;
 }

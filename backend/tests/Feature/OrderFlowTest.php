@@ -205,12 +205,12 @@ class OrderFlowTest extends TestCase
         $order = $this->placeOrder();
         $this->uploadReceipt($order);
 
-        app(ReviewReceipt::class)->reject(Order::first(), $this->admin(), 'The amount on the receipt is lower than the order total.');
+        app(ReviewReceipt::class)->reject(Order::first(), $this->admin(), 'amount', 'We received SDG 5,000 less.');
 
-        $this->withHeader('X-Order-Token', $order->json('data.access_token'))
+        $this->withHeaders(['X-Order-Token' => $order->json('data.access_token'), 'Accept-Language' => 'en'])
             ->getJson("/api/v1/orders/{$order->json('data.id')}")
             ->assertJsonPath('data.status', 'awaiting_payment')
-            ->assertJsonPath('data.rejection_reason', 'The amount on the receipt is lower than the order total.');
+            ->assertJsonPath('data.rejection_reason', __('shop.rejection.amount', locale: 'en').' We received SDG 5,000 less.');
         $this->assertSame(2, CouponCode::where('status', CouponCodeStatus::Reserved)->count());
         Notification::assertSentOnDemand(PaymentRejected::class);
 

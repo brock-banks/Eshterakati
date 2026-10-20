@@ -3,14 +3,17 @@
 namespace App\Models;
 
 use App\Enums\CouponCodeStatus;
+use App\Models\Concerns\HasArabicCopy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['deal_id', 'label', 'price_minor', 'compare_at_minor', 'sort_order'])]
+#[Fillable(['deal_id', 'label', 'label_ar', 'price_minor', 'compare_at_minor', 'sort_order'])]
 class DealOption extends Model
 {
+    use HasArabicCopy;
+
     /**
      * @return BelongsTo<Deal, $this>
      */

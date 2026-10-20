@@ -57,7 +57,13 @@ class OrderInfolist
                                     return $pay ? "{$pay['name']} · {$pay['account_number']}" : $state;
                                 }),
                             TextEntry::make('expires_at')->label('Pay by')->dateTime('M j, g:i A'),
-                            TextEntry::make('rejection_reason')->label('Last rejection')->placeholder('—'),
+                            TextEntry::make('rejection_code')
+                                ->label('Last rejection')
+                                ->formatStateUsing(fn (Order $record) => __("shop.rejection.{$record->rejection_code}", locale: 'en').($record->rejection_note ? " Note: {$record->rejection_note}" : ''))
+                                ->placeholder('—'),
+                            TextEntry::make('locale')
+                                ->label('Customer language')
+                                ->formatStateUsing(fn (string $state) => $state === 'ar' ? 'Arabic' : 'English'),
                             TextEntry::make('paid_at')->label('Approved')->dateTime('M j, g:i A')->placeholder('—'),
                             TextEntry::make('reviewer.name')->label('Reviewed by')->placeholder('—'),
                         ]),

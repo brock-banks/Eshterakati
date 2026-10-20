@@ -16,10 +16,10 @@ class CategoryResource extends JsonResource
     {
         return [
             'slug' => $this->slug,
-            'name' => $this->name,
+            'name' => $this->localized('name'),
             'icon' => $this->icon,
             'hue' => $this->hue,
-            'blurb' => $this->blurb,
+            'blurb' => $this->localized('blurb'),
             'deals_count' => $this->whenCounted('deals'),
         ];
     }

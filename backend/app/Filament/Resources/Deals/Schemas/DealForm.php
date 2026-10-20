@@ -27,6 +27,7 @@ class DealForm
         return $schema
             ->components([
                 Section::make('Deal')
+                    ->description('Arabic fields are what most customers see. English is used when an Arabic field is empty.')
                     ->columns(2)
                     ->columnSpanFull()
                     ->schema([
@@ -35,10 +36,13 @@ class DealForm
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Set $set, ?string $state, string $operation) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
                         TextInput::make('title')->required()->placeholder('Store credit'),
+                        TextInput::make('title_ar')->label('Title (Arabic)')->placeholder('رصيد المتجر')->extraInputAttributes(['dir' => 'rtl']),
                         TextInput::make('slug')->required()->unique(ignoreRecord: true)->helperText('Used in the page address.'),
                         Select::make('category_id')->relationship('category', 'name')->required(),
                         TextInput::make('blurb')->required()->maxLength(255)->columnSpanFull(),
+                        TextInput::make('blurb_ar')->label('Blurb (Arabic)')->maxLength(255)->columnSpanFull()->extraInputAttributes(['dir' => 'rtl']),
                         TextInput::make('region')->required()->default('Worldwide')->helperText('Where the code can be redeemed.'),
+                        TextInput::make('region_ar')->label('Region (Arabic)')->placeholder('جميع الدول')->extraInputAttributes(['dir' => 'rtl']),
                         TextInput::make('hue')
                             ->required()
                             ->numeric()
@@ -58,10 +62,15 @@ class DealForm
                             ->relationship()
                             ->hiddenLabel()
                             ->orderColumn('sort_order')
-                            ->columns(3)
+                            ->columns(4)
                             ->minItems(1)
                             ->schema([
                                 TextInput::make('label')->required()->placeholder('$25'),
+                                TextInput::make('label_ar')
+                                    ->label('Label (Arabic)')
+                                    ->placeholder('شهر واحد')
+                                    ->helperText('Leave empty when it’s the same, e.g. “$25”.')
+                                    ->extraInputAttributes(['dir' => 'rtl']),
                                 $money(TextInput::make('price_minor')->label('Price')->required()),
                                 $money(TextInput::make('compare_at_minor')->label('Was (optional)'))
                                     ->helperText('Shows a sale badge when higher than the price.'),

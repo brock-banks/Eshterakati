@@ -2,17 +2,14 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { plural, sortDeals, type Sort } from "@/lib/format";
+import { useI18n } from "@/i18n/I18nProvider";
+import { sortDeals, type Sort } from "@/lib/format";
 import type { Deal } from "@/lib/types";
 import { DealGrid } from "./DealCard";
 import { SegmentedControl } from "./SegmentedControl";
 
-const SORTS: { value: Sort; label: string }[] = [
-  { value: "popular", label: "Popular" },
-  { value: "savings", label: "Savings" },
-  { value: "ending", label: "Ending Soon" },
-];
-const isSort = (v: string | null): v is Sort => SORTS.some((s) => s.value === v);
+const SORTS: Sort[] = ["popular", "savings", "ending"];
+const isSort = (v: string | null): v is Sort => SORTS.includes(v as Sort);
 
 /** Sort lives in the URL (?sort=) so it survives back navigation and can be shared. */
 export function SortableDeals({ deals }: { deals: Deal[] }) {
@@ -36,10 +33,17 @@ export function SortableDeals({ deals }: { deals: Deal[] }) {
 }
 
 export function SortToolbar({ sort, onChange, count }: { sort: Sort; onChange?: (s: Sort) => void; count: number }) {
+  const { dict: d, plural } = useI18n();
+  const labels: Record<Sort, string> = { popular: d.browse.popular, savings: d.browse.savings, ending: d.browse.endingSoon };
   return (
     <div className="toolbar">
-      <SegmentedControl label="Sort deals" segments={SORTS} value={sort} onChange={onChange ?? (() => {})} />
-      <p className="result-count">{plural(count, "deal")}</p>
+      <SegmentedControl
+        label={d.browse.sortLabel}
+        segments={SORTS.map((value) => ({ value, label: labels[value] }))}
+        value={sort}
+        onChange={onChange ?? (() => {})}
+      />
+      <p className="result-count">{plural(d.plurals.deals, count)}</p>
     </div>
   );
 }

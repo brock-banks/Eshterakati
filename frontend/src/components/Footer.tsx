@@ -1,8 +1,13 @@
+"use client";
+
+import { useI18n } from "@/i18n/I18nProvider";
+
 export function Footer() {
+  const { dict } = useI18n();
   return (
     <footer className="app-footer">
-      <p>Merchants shown are fictional placeholders while the catalogue is being sourced.</p>
-      <p>Pay by bank transfer and upload your receipt. If a code doesn’t work, report it within 30 days for a full refund.</p>
+      <p>{dict.footer.placeholder}</p>
+      <p>{dict.footer.promise}</p>
     </footer>
   );
 }

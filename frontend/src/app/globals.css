@@ -1136,3 +1136,19 @@ input[type="file"]:focus-visible + .receipt-preview .btn { outline: 3px solid va
 
 .order-list .list-row { min-height: 64px; }
 .status-pill { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Language switcher in the header: the other language's name, in that language. */
+.lang-btn {
+  min-height: var(--hit); padding-inline: var(--s-3);
+  border: 0; border-radius: var(--r-pill); background: transparent;
+  color: var(--tint-text); font: 600 0.9375rem/1 var(--font-text);
+}
+.lang-btn:hover { background: var(--fill-2); }
+
+/* ---------- Arabic --------------------------------------------------------
+   Tracking breaks Arabic letter joining, so it is removed everywhere except
+   in Latin codes. Arabic glyphs are taller, so tight display line-heights
+   get a little more room. Direction comes from <html dir="rtl">. */
+html[lang="ar"] *:not(.code-value):not(.copy-value) { letter-spacing: 0; }
+html[lang="ar"] :is(.large-title, .hero-title, .title1, .section-title, .price-lg, .pass-value, .deal-art-name) { line-height: 1.35; }
+html[lang="ar"] .eyebrow, html[lang="ar"] .hero-eyebrow, html[lang="ar"] .list-header { text-transform: none; }

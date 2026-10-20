@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { getOrder, submitReceipt } from "@/app/actions";
+import { getOrder, submitReceipt, type OrderResult } from "@/app/actions";
+import { useI18n } from "@/i18n/I18nProvider";
 import { useNow } from "@/lib/clock";
-import { clockTime, money, remaining } from "@/lib/format";
+import { remaining } from "@/lib/format";
 import { compressImage } from "@/lib/image";
 import { saveOrder, syncOrder, useStore } from "@/lib/store";
 import type { Order } from "@/lib/types";
-import type { OrderResult } from "@/app/actions";
 import { CodeField } from "./CodeField";
 import { EmptyState } from "./EmptyState";
 import { Icon } from "./Icon";
@@ -20,6 +20,7 @@ const POLL_MS = 15_000;
 
 export function OrderView({ id }: { id: string }) {
   const router = useRouter();
+  const { dict: d, t, href, lang } = useI18n();
   const linkToken = useSearchParams().get("t");
   const saved = useStore((s) => s.orders.find((o) => o.id === id));
   const token = saved?.token ?? linkToken;
@@ -44,24 +45,24 @@ export function OrderView({ id }: { id: string }) {
   }, []);
 
   const load = useCallback(async () => {
-    if (token) apply(await getOrder(id, token));
-  }, [id, token, apply]);
+    if (token) apply(await getOrder(id, token, lang));
+  }, [id, token, lang, apply]);
 
   // Opened from an email link: remember the order on this device, then drop the token from the address bar.
   useEffect(() => {
     if (!order || saved || !linkToken) return;
     saveOrder({ id, token: linkToken, reference: order.reference, totalMinor: order.totalMinor, createdAt: order.createdAt, status: order.status });
-    router.replace(`/orders/${id}`);
-  }, [order, saved, linkToken, id, router]);
+    router.replace(href(`/orders/${id}`));
+  }, [order, saved, linkToken, id, router, href]);
 
   useEffect(() => {
     if (!token) return;
     let live = true;
-    getOrder(id, token).then((result) => live && apply(result));
+    getOrder(id, token, lang).then((result) => live && apply(result));
     return () => {
       live = false;
     };
-  }, [id, token, apply]);
+  }, [id, token, lang, apply]);
 
   // Keep the page current while it's waiting on the shopper or on us.
   const waiting = order?.status === "in_review" || order?.status === "awaiting_payment";
@@ -80,14 +81,14 @@ export function OrderView({ id }: { id: string }) {
     return (
       <EmptyState
         icon="ticket"
-        title="Open this order from its link"
+        title={d.order.noTokenTitle}
         action={
-          <Link className="btn btn-filled" href="/codes">
-            Go to My Codes
+          <Link className="btn btn-filled" href={href("/codes")}>
+            {d.order.goToCodes}
           </Link>
         }
       >
-        For your security, orders open only on the device you used to buy, or from the link in your email.
+        {d.order.noTokenBody}
       </EmptyState>
     );
   }
@@ -96,10 +97,10 @@ export function OrderView({ id }: { id: string }) {
     return error ? (
       <EmptyState
         icon="alert"
-        title="We couldn’t load this order"
+        title={d.order.loadErrorTitle}
         action={
           <button className="btn btn-filled" type="button" onClick={() => void load()}>
-            Try Again
+            {d.common.tryAgain}
           </button>
         }
       >
@@ -113,9 +114,9 @@ export function OrderView({ id }: { id: string }) {
   return (
     <>
       <header className="page-head" style={{ paddingBlockEnd: "var(--s-2)" }}>
-        <p className="eyebrow">Order {order.reference}</p>
+        <p className="eyebrow">{t(d.order.eyebrow, { reference: order.reference })}</p>
         <h1 ref={headingRef} className="large-title" tabIndex={-1}>
-          {HEADINGS[order.status]}
+          {d.order.heading[order.status]}
         </h1>
       </header>
       <Progress status={order.status} />
@@ -127,7 +128,16 @@ export function OrderView({ id }: { id: string }) {
       )}
       <div className="order-layout">
         <div className="order-main">
-          {order.status === "awaiting_payment" && <PayStep order={order} token={token} onSubmitted={(o) => { setOrder(o); syncOrder(o); }} />}
+          {order.status === "awaiting_payment" && (
+            <PayStep
+              order={order}
+              token={token}
+              onSubmitted={(o) => {
+                setOrder(o);
+                syncOrder(o);
+              }}
+            />
+          )}
           {order.status === "in_review" && <ReviewStep order={order} />}
           {order.status === "paid" && <PaidStep order={order} />}
           {(order.status === "expired" || order.status === "cancelled") && <ExpiredStep />}
@@ -138,21 +148,13 @@ export function OrderView({ id }: { id: string }) {
   );
 }
 
-const HEADINGS: Record<Order["status"], string> = {
-  awaiting_payment: "Complete your payment",
-  in_review: "Checking your payment",
-  paid: "Your codes are ready",
-  expired: "This order expired",
-  cancelled: "This order was cancelled",
-};
-
 function Progress({ status }: { status: Order["status"] }) {
-  const steps = ["Order placed", "Transfer & upload", "We confirm", "Get your codes"];
+  const { dict: d } = useI18n();
   const current = { awaiting_payment: 1, in_review: 2, paid: 4, expired: -1, cancelled: -1 }[status];
   if (current < 0) return null;
   return (
-    <ol className="progress" aria-label="Order progress">
-      {steps.map((label, i) => {
+    <ol className="progress" aria-label={d.order.progressLabel}>
+      {d.order.steps.map((label, i) => {
         const state = i < current ? "done" : i === current ? "current" : "todo";
         return (
           <li key={label} className={`progress-step is-${state}`} aria-current={state === "current" ? "step" : undefined}>
@@ -161,7 +163,7 @@ function Progress({ status }: { status: Order["status"] }) {
             </span>
             <span className="progress-label">
               {label}
-              <span className="visually-hidden">{state === "done" ? " (done)" : state === "current" ? " (current step)" : ""}</span>
+              <span className="visually-hidden"> {state === "done" ? d.order.stepDone : state === "current" ? d.order.stepCurrent : ""}</span>
             </span>
           </li>
         );
@@ -172,36 +174,39 @@ function Progress({ status }: { status: Order["status"] }) {
 
 function CopyRow({ label, value, display, hint }: { label: string; value: string; display?: string; hint?: string }) {
   const { toast } = useUI();
+  const { dict: d, t } = useI18n();
   return (
     <li className="list-row copy-row">
       <span className="list-row-main">
         <span className="list-row-sub">{label}</span>
-        <span className="copy-value tabular" dir="ltr">
+        {/* "auto": account numbers and references stay LTR, an Arabic currency amount stays RTL. */}
+        <bdi className="copy-value tabular" dir="auto">
           {display ?? value}
-        </span>
+        </bdi>
         {hint && <span className="list-row-sub">{hint}</span>}
       </span>
       <button
         className="btn btn-tinted btn-sm"
         type="button"
-        aria-label={`Copy ${label.toLowerCase()}`}
+        aria-label={t(d.order.copyLabel, { label })}
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(value);
-            toast(`${label} copied`);
+            toast(t(d.order.copied, { label }));
           } catch {
-            toast("Couldn’t copy. Select the text and copy it instead.");
+            toast(d.order.copyFailed);
           }
         }}
       >
         <Icon name="copy" />
-        <span className="copy-label">Copy</span>
+        <span className="copy-label">{d.common.copy}</span>
       </button>
     </li>
   );
 }
 
 function PayStep({ order, token, onSubmitted }: { order: Order; token: string; onSubmitted: (o: Order) => void }) {
+  const { dict: d, t, fmt } = useI18n();
   const now = useNow();
   const pounds = String(Math.round(order.totalMinor / 100));
   const p = order.payment;
@@ -212,7 +217,7 @@ function PayStep({ order, token, onSubmitted }: { order: Order; token: string; o
         <div className="callout callout-warning" role="alert">
           <Icon name="alert" />
           <div>
-            <p className="headline">We couldn’t confirm your last receipt</p>
+            <p className="headline">{d.order.rejectedTitle}</p>
             <p>{order.rejectionReason}</p>
           </div>
         </div>
@@ -221,26 +226,28 @@ function PayStep({ order, token, onSubmitted }: { order: Order; token: string; o
         <p className="deadline">
           <Icon name="clock" />
           <span>
-            Your codes are held until <strong>{clockTime(order.expiresAt)}</strong>
-            {now !== null && <span className="secondary"> · {remaining(order.expiresAt, now)}</span>}
+            {t(d.order.heldUntil, { time: fmt.clockTime(order.expiresAt) })}
+            {now !== null && <span className="secondary"> · {remaining(order.expiresAt, now, d)}</span>}
           </span>
         </p>
       )}
 
       <section aria-labelledby="transfer-h">
         <h2 className="list-header" id="transfer-h">
-          1. Transfer with {p.name}
+          {t(d.order.transferWith, { method: p.name })}
         </h2>
         <ul className="list" role="list">
-          <CopyRow label="Amount" value={pounds} display={money(order.totalMinor)} hint="Send exactly this amount." />
-          {p.accountNumber && <CopyRow label="Account number" value={p.accountNumber} hint={[p.accountName, p.provider].filter(Boolean).join(" · ")} />}
-          <CopyRow label="Reference" value={order.reference} hint="Write this in the transfer note (التعليق)." />
+          <CopyRow label={d.order.amount} value={pounds} display={fmt.money(order.totalMinor)} hint={d.order.amountHint} />
+          {p.accountNumber && (
+            <CopyRow label={d.order.accountNumber} value={p.accountNumber} hint={[p.accountName, p.provider].filter(Boolean).join(" · ")} />
+          )}
+          <CopyRow label={d.order.reference} value={order.reference} hint={d.order.referenceHint} />
         </ul>
       </section>
 
       <section aria-labelledby="upload-h">
         <h2 className="list-header" id="upload-h">
-          2. Upload the receipt
+          {d.order.uploadTitle}
         </h2>
         <ReceiptForm order={order} token={token} onSubmitted={onSubmitted} />
       </section>
@@ -249,6 +256,7 @@ function PayStep({ order, token, onSubmitted }: { order: Order; token: string; o
 }
 
 function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: string; onSubmitted: (o: Order) => void }) {
+  const { dict: d, lang } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [reference, setReference] = useState("");
@@ -262,8 +270,8 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const next = {
-      receipt: file ? undefined : "Add a screenshot or photo of your transfer receipt.",
-      reference: reference.trim().length >= 4 ? undefined : "Enter the transaction number shown on the receipt.",
+      receipt: file ? undefined : d.order.receiptRequired,
+      reference: reference.trim().length >= 4 ? undefined : d.order.referenceRequired,
     };
     if (next.receipt || next.reference) {
       setErrors(next);
@@ -274,6 +282,7 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
     setSending(true);
     setErrors({});
     const form = new FormData();
+    form.set("lang", lang);
     form.set("id", order.id);
     form.set("token", token);
     form.set("receipt", await compressImage(file!));
@@ -313,9 +322,9 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
       {preview ? (
         <div className="receipt-preview">
           {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
-          <img src={preview} alt="Your receipt" />
+          <img src={preview} alt={d.order.receiptAlt} />
           <label htmlFor="receipt" className="btn btn-gray btn-sm">
-            Change
+            {d.order.change}
           </label>
         </div>
       ) : (
@@ -323,9 +332,9 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
           <span className="receipt-drop-icon" aria-hidden="true">
             <Icon name="doc" />
           </span>
-          <span className="headline">Add receipt screenshot</span>
+          <span className="headline">{d.order.addScreenshot}</span>
           <span className="list-row-sub" id="receipt-help">
-            Take a screenshot in your banking app after the transfer
+            {d.order.addScreenshotHint}
           </span>
         </label>
       )}
@@ -338,7 +347,7 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
 
       <div className="field">
         <label className="field-label" htmlFor="txn">
-          Transaction number
+          {d.order.txnLabel}
         </label>
         <input
           ref={refInput}
@@ -348,7 +357,7 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
-          placeholder="e.g. 2026102012345678"
+          placeholder={d.order.txnPlaceholder}
           value={reference}
           disabled={sending}
           aria-invalid={errors.reference ? true : undefined}
@@ -365,7 +374,7 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
           </p>
         ) : (
           <p className="field-help" id="txn-help">
-            Shown on the receipt as “رقم العملية” or “Transaction ID”.
+            {d.order.txnHelp}
           </p>
         )}
       </div>
@@ -380,10 +389,10 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
         {sending ? (
           <>
             <span className="spinner" aria-hidden="true" />
-            Uploading…
+            {d.order.uploading}
           </>
         ) : (
-          "Submit Receipt"
+          d.order.submit
         )}
       </button>
     </form>
@@ -391,26 +400,24 @@ function ReceiptForm({ order, token, onSubmitted }: { order: Order; token: strin
 }
 
 function ReviewStep({ order }: { order: Order }) {
+  const { dict: d, t, href } = useI18n();
   return (
     <div className="status-card">
       <span className="status-icon is-waiting" aria-hidden="true">
         <Icon name="clock" />
       </span>
-      <h2 className="title3">We’re checking your transfer</h2>
-      <p>
-        We confirm every payment in our account before releasing codes — {order.reviewTime}. This page updates by itself.
-      </p>
-      <p className="footnote secondary">
-        You can close this page. Your codes will appear here and in My Codes, and we’ll email them if you gave us your address.
-      </p>
-      <Link className="btn btn-tinted" href="/codes">
-        Go to My Codes
+      <h2 className="title3">{d.order.reviewTitle}</h2>
+      <p>{t(d.order.reviewBody, { time: order.reviewTime })}</p>
+      <p className="footnote secondary">{d.order.reviewClose}</p>
+      <Link className="btn btn-tinted" href={href("/codes")}>
+        {d.order.goToCodes}
       </Link>
     </div>
   );
 }
 
 function PaidStep({ order }: { order: Order }) {
+  const { dict: d, href } = useI18n();
   return (
     <>
       <div className="success" style={{ paddingBlockStart: 0 }}>
@@ -419,7 +426,7 @@ function PaidStep({ order }: { order: Order }) {
             <path d="M20 6 9 17l-5-5" />
           </svg>
         </span>
-        <p>Payment confirmed. Copy a code and redeem it with the merchant. Each code works once.</p>
+        <p>{d.order.paidBody}</p>
       </div>
       <div className="new-codes">
         {order.items.flatMap((item) =>
@@ -439,33 +446,35 @@ function PaidStep({ order }: { order: Order }) {
           )),
         )}
       </div>
-      <Link className="btn btn-filled btn-lg" href="/codes" style={{ marginBlockStart: "var(--s-6)" }}>
-        View in My Codes
+      <Link className="btn btn-filled btn-lg" href={href("/codes")} style={{ marginBlockStart: "var(--s-6)" }}>
+        {d.order.viewInCodes}
       </Link>
     </>
   );
 }
 
 function ExpiredStep() {
+  const { dict: d, href } = useI18n();
   return (
     <div className="status-card">
       <span className="status-icon" aria-hidden="true">
         <Icon name="clock" />
       </span>
-      <h2 className="title3">No receipt arrived in time</h2>
-      <p>The codes we held for you went back on sale. If you already transferred the money, contact us with your receipt and we’ll sort it out.</p>
-      <Link className="btn btn-filled" href="/">
-        Browse Deals
+      <h2 className="title3">{d.order.expiredTitle}</h2>
+      <p>{d.order.expiredBody}</p>
+      <Link className="btn btn-filled" href={href("/")}>
+        {d.order.browseDeals}
       </Link>
     </div>
   );
 }
 
 function OrderSummary({ order }: { order: Order }) {
+  const { dict: d, fmt } = useI18n();
   return (
     <aside className="order-summary" aria-labelledby="summary-h">
       <h2 className="list-header" id="summary-h">
-        Order summary
+        {d.order.summary}
       </h2>
       <ul className="list" role="list">
         {order.items.map((item) => (
@@ -480,13 +489,13 @@ function OrderSummary({ order }: { order: Order }) {
                 {item.quantity > 1 && ` × ${item.quantity}`}
               </span>
             </span>
-            <span className="list-row-value tabular">{money(item.unitPriceMinor * item.quantity)}</span>
+            <span className="list-row-value tabular">{fmt.money(item.unitPriceMinor * item.quantity)}</span>
           </li>
         ))}
         <li className="list-row total" style={{ "--row-inset": "16px" } as CSSProperties}>
-          <span className="list-row-main headline">Total</span>
+          <span className="list-row-main headline">{d.common.total}</span>
           <span className="list-row-value tabular headline" style={{ color: "var(--label)" }}>
-            {money(order.totalMinor)}
+            {fmt.money(order.totalMinor)}
           </span>
         </li>
       </ul>

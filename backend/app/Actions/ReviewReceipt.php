@@ -45,18 +45,26 @@ class ReviewReceipt
         return $order;
     }
 
+    public const REJECTION_CODES = ['not_received', 'amount', 'unreadable', 'wrong_account'];
+
     /**
      * Send the order back to the customer to try again. Codes stay reserved for a fresh payment window.
+     * The code is translated for the customer (lang/{locale}/shop.php); the note is shown as written.
      */
-    public function reject(Order $order, User $admin, string $reason): Order
+    public function reject(Order $order, User $admin, string $code, ?string $note = null): Order
     {
         $this->assertInReview($order);
 
-        DB::transaction(function () use ($order, $admin, $reason) {
+        if (! in_array($code, self::REJECTION_CODES, true)) {
+            throw new LogicException("Unknown rejection reason [{$code}].");
+        }
+
+        DB::transaction(function () use ($order, $admin, $code, $note) {
             $order->latestReceipt->update(['status' => ReceiptStatus::Rejected]);
             $order->update([
                 'status' => OrderStatus::AwaitingPayment,
-                'rejection_reason' => $reason,
+                'rejection_code' => $code,
+                'rejection_note' => filled($note) ? trim($note) : null,
                 'reviewed_by' => $admin->id,
                 'expires_at' => now()->addMinutes(config('shop.payment_window_minutes')),
             ]);
@@ -82,7 +90,7 @@ class ReviewReceipt
 
         // The decision is already saved; a mail failure must not undo it.
         try {
-            Notification::route('mail', $order->email)->notify($notification);
+            Notification::route('mail', $order->email)->notify($notification->locale($order->locale));
         } catch (Throwable $e) {
             report($e);
         }

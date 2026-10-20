@@ -12,7 +12,7 @@ class PaymentMethodController extends Controller
     {
         return response()->json([
             'data' => PaymentMethods::enabled()
-                ->map(fn (array $m) => ['key' => $m['key'], 'name' => $m['name'], 'provider' => $m['provider']])
+                ->map(fn (array $m) => ['key' => $m['key'], ...PaymentMethods::label($m)])
                 ->values(),
         ]);
     }

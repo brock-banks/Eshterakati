@@ -154,7 +154,9 @@ Guest card with Sign In. Appearance: Theme (Auto/Light/Dark) and Layout directio
 - Breakpoints: 480 (compact phone tweaks) · 640 (card grid) · 768 (tab bar → top bar, sheet → centred card) · 900 (two‑column deal page).
 - No horizontal page scroll at 375px. Only the chip row scrolls sideways, with visible overflow as the affordance.
 - **RTL‑ready:** all layout uses logical properties, and directional icons flip. Codes stay LTR (`direction: ltr; unicode-bidi: isolate`). The Account page has an RTL preview toggle.
-- **Market: Sudan.** Arabic copy is the main open localisation task (see below). The layout is already RTL‑ready, and Arabic is used where shoppers will see it in their bank app ("رقم العملية", "التعليق").
+- **Market: Sudan. Arabic is the default language** (`/ar`, `dir="rtl"`), with English at `/en`. Switch from the header (the other language is named in its own script) or from Account → Language. The choice is remembered.
+- Arabic details: Western digits (as in Bankak and other bank apps), all six Arabic plural forms ("عرضان", "3 عروض", "12 عرضًا"), no letter‑spacing (it breaks joining), slightly taller line‑height on headings, and search that ignores hamza and taa‑marbuta spelling differences.
+- Mixed text: order references, amounts, account numbers and codes are direction‑isolated so they never reorder inside Arabic sentences. Codes and account numbers are always LTR.
 - Prices are in **SDG** (whole pounds, `SDG 52,000`). Option labels carry the card's own denomination ("$25").
 
 ## 11. Decisions
@@ -167,7 +169,7 @@ Guest card with Sign In. Appearance: Theme (Auto/Light/Dark) and Layout directio
 | Accounts | **Optional.** Guest checkout with phone (and optional email). Orders live on the device and in the emailed link. Sign‑in later attaches past orders by phone/email. |
 
 ### Still open
-1. **Arabic UI**: translate all copy and make RTL the default for Arabic.
+1. **Arabic copy review** by a native Sudanese speaker. The translation is Modern Standard Arabic and should be checked for local tone.
 2. **Review hours & staffing**: what to promise ("usually within 30 minutes, 9am–11pm"), and who covers nights and weekends.
 3. **Real prices**: set per option in /admin (the seed uses a placeholder exchange rate). Decide how often to reprice as the pound moves.
 4. **Brand licensing** for real merchant names and logos, and **refund policy** details (30 days? evidence needed?).

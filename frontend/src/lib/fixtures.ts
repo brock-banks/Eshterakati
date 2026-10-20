@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/config";
 import type { Category, Deal } from "./types";
 
 /**
@@ -48,22 +49,55 @@ const DEALS: Row[] = [
     [["1 year", 71.88, false], ["2 years", 143.76, true]]],
 ];
 
+// Arabic copy, as in the seeder.
+const CATEGORIES_AR: Record<string, [name: string, blurb: string]> = {
+  streaming: ["البث والترفيه", "اشتراكات الأفلام والمسلسلات والموسيقى."],
+  gaming: ["الألعاب", "رصيد المتاجر وتذاكر المواسم والعملات داخل الألعاب."],
+  food: ["الطعام والتوصيل", "المطاعم والبقالة ورصيد التوصيل."],
+  shopping: ["التسوق", "الأزياء والإلكترونيات ومستلزمات المنزل."],
+  travel: ["السفر", "رحلات الطيران والإقامة والتنقل."],
+  software: ["التطبيقات والبرامج", "أدوات الإنتاجية والحماية والتخزين السحابي."],
+};
+const DEALS_AR: Record<string, [title: string, blurb: string]> = {
+  "lumen-premium": ["الباقة المميزة", "بث بدقة 4K بدون إعلانات على أربع شاشات، مع إمكانية التنزيل."],
+  "tempo-family": ["الباقة العائلية", "ستة حسابات، واستماع دون اتصال، وصوت عالي الجودة."],
+  "pixelforge-credit": ["رصيد المتجر", "استخدمه لشراء الألعاب والإضافات من متجر PixelForge."],
+  "questline-pass": ["تذكرة الموسم", "افتح الموسم كاملًا: 100 مستوى من المكافآت وخريطتان جديدتان."],
+  "nomad-eats": ["رصيد التوصيل", "اطلب من آلاف المطاعم. الرصيد لا تنتهي صلاحيته."],
+  "fresh-basket": ["قسيمة البقالة", "خضروات طازجة ومستلزمات المطبخ تصلك في اليوم نفسه."],
+  "atelier-gift": ["بطاقة هدايا", "أزياء وتجميل ومستلزمات منزلية من أكثر من 400 مصمم."],
+  "circuit-voucher": ["قسيمة الإلكترونيات", "هواتف وحواسيب وإكسسوارات، عبر الإنترنت أو في المتجر."],
+  "dune-air": ["قسيمة طيران", "استخدمها لأي تذكرة على 120 وجهة، شاملة الضرائب."],
+  "oasis-stays": ["رصيد الفنادق", "احجز فنادق ومنتجعات مميزة في 60 دولة."],
+  "noteworthy-pro": ["النسخة الاحترافية · سنة", "ملاحظات غير محدودة، ومزامنة بين أجهزتك، وبحث ذكي."],
+  "vaultline-vpn": ["اشتراك VPN", "تصفح خاص على عدد غير محدود من الأجهزة، دون حفظ أي سجلات."],
+};
+const REGIONS_AR: Record<string, string> = { Worldwide: "جميع الدول", "GCC only": "دول الخليج فقط", "GCC & Europe": "الخليج وأوروبا" };
+const LABELS_AR: Record<string, string> = {
+  "1 month": "شهر واحد", "3 months": "3 أشهر", "6 months": "6 أشهر", "12 months": "12 شهرًا",
+  "1 year": "سنة واحدة", "2 years": "سنتان", "Season 12": "الموسم 12",
+};
+
 // Same demo pricing as the seeder: placeholder rate + 8%, rounded to 500 SDG.
 const DEMO_SDG_PER_USD = 3000;
 const roundSdg = (pounds: number) => Math.round(pounds / 500) * 500;
 const demoPrice = (usd: number) => roundSdg(usd * DEMO_SDG_PER_USD * 1.08) * 100;
 
-export function fixtureCatalog(now: number): { categories: Category[]; deals: Deal[] } {
+export function fixtureCatalog(now: number, lang: Locale = "en"): { categories: Category[]; deals: Deal[] } {
+  const ar = lang === "ar";
   let optionId = 0;
   const deals: Deal[] = DEALS.map(([slug, category, merchant, title, blurb, hue, region, rating, reviewsCount, soldCount, isFeatured, endsIn, options]) => ({
-    slug, category, merchant, title, blurb, hue, region, rating, reviewsCount, soldCount, isFeatured,
+    slug, category, merchant, hue, rating, reviewsCount, soldCount, isFeatured,
+    title: (ar && DEALS_AR[slug]?.[0]) || title,
+    blurb: (ar && DEALS_AR[slug]?.[1]) || blurb,
+    region: (ar && REGIONS_AR[region]) || region,
     endsAt: endsIn ? new Date(now + endsIn * 36e5).toISOString() : null,
     options: options.map(([label, usd, onSale]) => {
       const priceMinor = demoPrice(usd);
       const compareAtMinor = onSale ? roundSdg((priceMinor / 100) * 1.15) * 100 : null;
       return {
         id: ++optionId,
-        label,
+        label: (ar && LABELS_AR[label]) || label,
         priceMinor,
         compareAtMinor,
         discountPercent: compareAtMinor ? Math.round((1 - priceMinor / compareAtMinor) * 100) : null,
@@ -71,6 +105,11 @@ export function fixtureCatalog(now: number): { categories: Category[]; deals: De
       };
     }),
   }));
-  const categories = CATEGORIES.map((c) => ({ ...c, dealsCount: deals.filter((d) => d.category === c.slug).length }));
+  const categories = CATEGORIES.map((c) => ({
+    ...c,
+    name: (ar && CATEGORIES_AR[c.slug]?.[0]) || c.name,
+    blurb: (ar && CATEGORIES_AR[c.slug]?.[1]) || c.blurb,
+    dealsCount: deals.filter((d) => d.category === c.slug).length,
+  }));
   return { categories, deals: deals.sort((a, b) => b.soldCount - a.soldCount) };
 }

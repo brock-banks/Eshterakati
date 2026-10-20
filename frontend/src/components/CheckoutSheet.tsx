@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { createOrder } from "@/app/actions";
-import { money, plural } from "@/lib/format";
+import type { Dictionary } from "@/i18n";
+import { useI18n } from "@/i18n/I18nProvider";
 import { clearBag, MAX_QTY, removeLine, restoreLine, saveOrder, setQty, update, useStore } from "@/lib/store";
 import type { BagLine } from "@/lib/types";
 import { EmptyState } from "./EmptyState";
@@ -24,6 +25,7 @@ const totals = (lines: BagLine[]) =>
 
 function SheetNav({ title, leading, trailing }: { title: string; leading?: ReactNode; trailing?: ReactNode }) {
   const { closeSheet } = useUI();
+  const { dict } = useI18n();
   const closeRef = useRef<HTMLButtonElement>(null);
   // Each step replaces the sheet's content; put focus somewhere predictable.
   useEffect(() => closeRef.current?.focus({ preventScroll: true }), []);
@@ -36,7 +38,7 @@ function SheetNav({ title, leading, trailing }: { title: string; leading?: React
           {title}
         </h2>
         {trailing ?? (
-          <button ref={closeRef} className="close-btn" type="button" aria-label="Close" onClick={closeSheet}>
+          <button ref={closeRef} className="close-btn" type="button" aria-label={dict.common.close} onClick={closeSheet}>
             <span>
               <Icon name="close" />
             </span>
@@ -48,23 +50,24 @@ function SheetNav({ title, leading, trailing }: { title: string; leading?: React
 }
 
 function Summary({ price, was }: { price: number; was: number }) {
+  const { dict: d, fmt } = useI18n();
   return (
     <ul className="list summary" role="list">
       {was > price && (
         <>
           <li className="list-row">
-            <span className="list-row-main">Subtotal</span>
-            <span className="list-row-value tabular">{money(was)}</span>
+            <span className="list-row-main">{d.bag.subtotal}</span>
+            <span className="list-row-value tabular">{fmt.money(was)}</span>
           </li>
           <li className="list-row saving">
-            <span className="list-row-main">Sale discount</span>
-            <span className="list-row-value tabular">−{money(was - price)}</span>
+            <span className="list-row-main">{d.bag.saleDiscount}</span>
+            <span className="list-row-value tabular">−{fmt.money(was - price)}</span>
           </li>
         </>
       )}
       <li className="list-row total">
-        <span className="list-row-main list-row-title">Total</span>
-        <span className="list-row-value tabular">{money(price)}</span>
+        <span className="list-row-main list-row-title">{d.common.total}</span>
+        <span className="list-row-value tabular">{fmt.money(price)}</span>
       </li>
     </ul>
   );
@@ -72,24 +75,25 @@ function Summary({ price, was }: { price: number; was: number }) {
 
 export function BagView() {
   const { closeSheet, showView, toast } = useUI();
+  const { dict: d, t, plural, fmt, href } = useI18n();
   const bag = useStore((s) => s.bag);
-  const t = totals(bag);
+  const total = totals(bag);
 
   if (!bag.length) {
     return (
       <>
-        <SheetNav title="Bag" />
+        <SheetNav title={d.bag.title} />
         <div className="sheet-body">
           <EmptyState
             icon="bag"
-            title="Your Bag is empty"
+            title={d.bag.emptyTitle}
             action={
-              <Link className="btn btn-filled" href="/" onClick={closeSheet}>
-                Discover Deals
+              <Link className="btn btn-filled" href={href("/")} onClick={closeSheet}>
+                {d.bag.discover}
               </Link>
             }
           >
-            Add codes to buy several at once, or use Buy Now on any deal.
+            {d.bag.emptyBody}
           </EmptyState>
         </div>
       </>
@@ -98,9 +102,9 @@ export function BagView() {
 
   return (
     <>
-      <SheetNav title="Bag" />
+      <SheetNav title={d.bag.title} />
       <div className="sheet-body">
-        <h3 className="list-header">{plural(t.count, "item")}</h3>
+        <h3 className="list-header">{plural(d.plurals.items, total.count)}</h3>
         <ul className="list" role="list">
           {bag.map((l) => {
             const name = `${l.merchant} ${l.title}`;
@@ -109,26 +113,24 @@ export function BagView() {
                 <MerchantTile merchant={l.merchant} hue={l.hue} size="sm" />
                 <div className="list-row-main">
                   <p className="headline">{name}</p>
-                  <p className="list-row-sub">
-                    {l.label} · {money(l.priceMinor)} each
-                  </p>
+                  <p className="list-row-sub">{t(d.bag.each, { label: l.label, price: fmt.money(l.priceMinor) })}</p>
                   <div className="line-item-actions">
-                    <div className="stepper" role="group" aria-label={`Quantity for ${name}`}>
-                      <button type="button" aria-label="Decrease quantity" disabled={l.qty <= 1} onClick={() => setQty(l.optionId, l.qty - 1)}>
+                    <div className="stepper" role="group" aria-label={t(d.bag.quantityFor, { name })}>
+                      <button type="button" aria-label={d.bag.decrease} disabled={l.qty <= 1} onClick={() => setQty(l.optionId, l.qty - 1)}>
                         <Icon name="minus" />
                       </button>
                       <output aria-live="polite">{l.qty}</output>
-                      <button type="button" aria-label="Increase quantity" disabled={l.qty >= MAX_QTY} onClick={() => setQty(l.optionId, l.qty + 1)}>
+                      <button type="button" aria-label={d.bag.increase} disabled={l.qty >= MAX_QTY} onClick={() => setQty(l.optionId, l.qty + 1)}>
                         <Icon name="plus" />
                       </button>
                     </div>
                     <button
                       className="icon-btn remove-btn"
                       type="button"
-                      aria-label={`Remove ${name}`}
+                      aria-label={t(d.bag.remove, { name })}
                       onClick={() => {
                         const removed = removeLine(l.optionId);
-                        if (removed) toast(`Removed ${name}`, { label: "Undo", run: () => restoreLine(removed.line, removed.index) });
+                        if (removed) toast(t(d.bag.removed, { name }), { label: d.common.undo, run: () => restoreLine(removed.line, removed.index) });
                       }}
                     >
                       <Icon name="trash" />
@@ -136,11 +138,11 @@ export function BagView() {
                   </div>
                 </div>
                 <div className="line-item-price">
-                  {money(l.priceMinor * l.qty)}
+                  {fmt.money(l.priceMinor * l.qty)}
                   {l.compareAtMinor && (
                     <s>
-                      <span className="visually-hidden">Was </span>
-                      {money(l.compareAtMinor * l.qty)}
+                      <span className="visually-hidden">{d.common.was} </span>
+                      {fmt.money(l.compareAtMinor * l.qty)}
                     </s>
                   )}
                 </div>
@@ -148,12 +150,12 @@ export function BagView() {
             );
           })}
         </ul>
-        <h3 className="list-header">Summary</h3>
-        <Summary price={t.price} was={t.was} />
+        <h3 className="list-header">{d.bag.summary}</h3>
+        <Summary price={total.price} was={total.was} />
       </div>
       <div className="sheet-foot">
         <button className="btn btn-filled btn-lg" type="button" onClick={() => showView({ step: "checkout", from: "bag", items: bag })}>
-          Check Out
+          {d.bag.checkout}
         </button>
       </div>
     </>
@@ -164,21 +166,22 @@ export function BagView() {
 const PHONE_RE = /^(?:\+?249|00249|0)?[19]\d{8}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function phoneError(value: string) {
+function phoneError(value: string, d: Dictionary) {
   const digits = value.replace(/[\s-]/g, "");
-  if (!digits) return "Enter your phone number so we can reach you about this order.";
-  if (!PHONE_RE.test(digits)) return "Enter a Sudanese mobile number, like 0912 345 678.";
+  if (!digits) return d.checkout.phoneRequired;
+  if (!PHONE_RE.test(digits)) return d.checkout.phoneInvalid;
   return "";
 }
-function emailError(value: string) {
+function emailError(value: string, d: Dictionary) {
   if (!value.trim() || EMAIL_RE.test(value.trim())) return "";
-  return "That email looks incomplete. Check for a missing “@” or domain, like name@example.com.";
+  return d.checkout.emailInvalid;
 }
 
 type Errors = { phone?: string; email?: string; paymentMethod?: string; form?: string };
 
 export function CheckoutView({ view }: { view: Extract<SheetView, { step: "checkout" }> }) {
   const { showView, setBusy, closeSheet, paymentMethods } = useUI();
+  const { dict: d, t, fmt, href, lang } = useI18n();
   const router = useRouter();
   const storedPhone = useStore((s) => s.phone);
   const storedEmail = useStore((s) => s.email);
@@ -189,12 +192,12 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
   const [processing, setProcessing] = useState(false);
   const phoneRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
-  const t = totals(view.items);
+  const total = totals(view.items);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const next: Errors = { phone: phoneError(phone) || undefined, email: emailError(email) || undefined };
-    if (!method) next.paymentMethod = "Choose how you’ll pay.";
+    const next: Errors = { phone: phoneError(phone, d) || undefined, email: emailError(email, d) || undefined };
+    if (!method) next.paymentMethod = d.checkout.chooseMethod;
     if (next.phone || next.email || next.paymentMethod) {
       setErrors(next);
       (next.phone ? phoneRef : emailRef).current?.focus();
@@ -204,7 +207,7 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
     setErrors({});
     setProcessing(true);
     setBusy(true);
-    const result = await createOrder({ phone, email, paymentMethod: method, items: view.items.map((i) => ({ optionId: i.optionId, qty: i.qty })) });
+    const result = await createOrder({ lang, phone, email, paymentMethod: method, items: view.items.map((i) => ({ optionId: i.optionId, qty: i.qty })) });
     setBusy(false);
 
     if (!result.ok) {
@@ -220,7 +223,7 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
     saveOrder({ id: order.id, token: token!, reference: order.reference, totalMinor: order.totalMinor, createdAt: order.createdAt, status: order.status });
     update(() => ({ phone, email }));
     if (view.from === "bag") clearBag();
-    router.push(`/orders/${order.id}`);
+    router.push(href(`/orders/${order.id}`));
     closeSheet();
   }
 
@@ -235,19 +238,19 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
   return (
     <form className="sheet-form" onSubmit={onSubmit} noValidate aria-busy={processing}>
       <SheetNav
-        title="Checkout"
+        title={d.checkout.title}
         leading={
           view.from === "bag" ? (
             <button className="btn btn-plain" type="button" disabled={processing} onClick={() => showView({ step: "bag" })}>
               <Icon name="chevron-left" className="flip-rtl" />
-              Bag
+              {d.checkout.back}
             </button>
           ) : undefined
         }
         trailing={processing ? <span /> : undefined}
       />
       <div className="sheet-body">
-        <h3 className="list-header">Order</h3>
+        <h3 className="list-header">{d.checkout.order}</h3>
         <ul className="list" role="list">
           {view.items.map((l) => (
             <li key={l.optionId} className="list-row">
@@ -261,16 +264,16 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
                   {l.qty > 1 && ` × ${l.qty}`}
                 </span>
               </span>
-              <span className="list-row-value tabular">{money(l.priceMinor * l.qty)}</span>
+              <span className="list-row-value tabular">{fmt.money(l.priceMinor * l.qty)}</span>
             </li>
           ))}
         </ul>
 
-        <h3 className="list-header">Your details</h3>
+        <h3 className="list-header">{d.checkout.details}</h3>
         <div className="field-stack">
           <div className="field">
             <label className="field-label" htmlFor="phone">
-              Phone <span className="secondary">(WhatsApp)</span>
+              {d.checkout.phone} <span className="secondary">{d.checkout.whatsapp}</span>
             </label>
             <input
               ref={phoneRef}
@@ -279,7 +282,7 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              placeholder="0912 345 678"
+              placeholder={d.checkout.phonePlaceholder}
               dir="ltr"
               required
               value={phone}
@@ -288,19 +291,19 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
               aria-describedby={errors.phone ? "phone-error" : "phone-help"}
               onChange={(e) => {
                 setPhone(e.target.value);
-                if (errors.phone && !phoneError(e.target.value)) setErrors((x) => ({ ...x, phone: undefined }));
+                if (errors.phone && !phoneError(e.target.value, d)) setErrors((x) => ({ ...x, phone: undefined }));
               }}
-              onBlur={() => phone && setErrors((x) => ({ ...x, phone: phoneError(phone) || undefined }))}
+              onBlur={() => phone && setErrors((x) => ({ ...x, phone: phoneError(phone, d) || undefined }))}
             />
             {fieldError("phone-error", errors.phone) ?? (
               <p className="field-help" id="phone-help">
-                Only used if there’s a problem with your payment.
+                {d.checkout.phoneHelp}
               </p>
             )}
           </div>
           <div className="field">
             <label className="field-label" htmlFor="email">
-              Email <span className="secondary">(optional)</span>
+              {d.checkout.email} <span className="secondary">{d.checkout.optional}</span>
             </label>
             <input
               ref={emailRef}
@@ -310,26 +313,27 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
               inputMode="email"
               autoComplete="email"
               placeholder="name@example.com"
+              dir="ltr"
               value={email}
               disabled={processing}
               aria-invalid={errors.email ? true : undefined}
               aria-describedby={errors.email ? "email-error" : "email-help"}
               onChange={(e) => {
                 setEmail(e.target.value);
-                if (errors.email && !emailError(e.target.value)) setErrors((x) => ({ ...x, email: undefined }));
+                if (errors.email && !emailError(e.target.value, d)) setErrors((x) => ({ ...x, email: undefined }));
               }}
-              onBlur={() => setErrors((x) => ({ ...x, email: emailError(email) || undefined }))}
+              onBlur={() => setErrors((x) => ({ ...x, email: emailError(email, d) || undefined }))}
             />
             {fieldError("email-error", errors.email) ?? (
               <p className="field-help" id="email-help">
-                We’ll email the payment details and your codes. No account needed.
+                {d.checkout.emailHelp}
               </p>
             )}
           </div>
         </div>
 
         <h3 className="list-header" id="pay-h">
-          Pay by bank transfer
+          {d.checkout.payTitle}
         </h3>
         {paymentMethods.length ? (
           <ul className="list" role="radiogroup" aria-labelledby="pay-h" aria-describedby="pay-help">
@@ -351,16 +355,16 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
         ) : (
           <p className="field-error" role="alert">
             <Icon name="alert" />
-            Payments aren’t set up yet. Please try again later.
+            {d.checkout.notSetUp}
           </p>
         )}
         <p className="list-footer" id="pay-help">
-          Next, you’ll see the account details. Transfer from your banking app, then upload a screenshot of the receipt.
+          {d.checkout.payHelp}
         </p>
         {fieldError("pay-error", errors.paymentMethod)}
 
-        <h3 className="list-header">Summary</h3>
-        <Summary price={t.price} was={t.was} />
+        <h3 className="list-header">{d.bag.summary}</h3>
+        <Summary price={total.price} was={total.was} />
       </div>
       <div className="sheet-foot">
         {errors.form && (
@@ -373,15 +377,15 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
           {processing ? (
             <>
               <span className="spinner" aria-hidden="true" />
-              Reserving your codes…
+              {d.checkout.reserving}
             </>
           ) : (
-            <>Place Order · {money(t.price)}</>
+            t(d.checkout.placeOrder, { total: fmt.money(total.price) })
           )}
         </button>
         <p className="footnote secondary">
           <Icon name="lock" />
-          Your codes are held for you while you pay
+          {d.checkout.held}
         </p>
       </div>
     </form>

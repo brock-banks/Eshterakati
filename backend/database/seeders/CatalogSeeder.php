@@ -18,12 +18,12 @@ class CatalogSeeder extends Seeder
     public int $codesPerOption = 25;
 
     private const CATEGORIES = [
-        ['slug' => 'streaming', 'name' => 'Streaming', 'icon' => 'tv', 'hue' => 262, 'blurb' => 'TV, film and music subscriptions.'],
-        ['slug' => 'gaming', 'name' => 'Gaming', 'icon' => 'gamepad', 'hue' => 217, 'blurb' => 'Store credit, season passes and in‑game currency.'],
-        ['slug' => 'food', 'name' => 'Food & Delivery', 'icon' => 'utensils', 'hue' => 22, 'blurb' => 'Restaurants, groceries and delivery credit.'],
-        ['slug' => 'shopping', 'name' => 'Shopping', 'icon' => 'tag', 'hue' => 330, 'blurb' => 'Fashion, electronics and home.'],
-        ['slug' => 'travel', 'name' => 'Travel', 'icon' => 'plane', 'hue' => 192, 'blurb' => 'Flights, stays and rides.'],
-        ['slug' => 'software', 'name' => 'Apps & Software', 'icon' => 'layers', 'hue' => 150, 'blurb' => 'Productivity, security and cloud storage.'],
+        ['slug' => 'streaming', 'name' => 'Streaming', 'name_ar' => 'البث والترفيه', 'blurb_ar' => 'اشتراكات الأفلام والمسلسلات والموسيقى.', 'icon' => 'tv', 'hue' => 262, 'blurb' => 'TV, film and music subscriptions.'],
+        ['slug' => 'gaming', 'name' => 'Gaming', 'name_ar' => 'الألعاب', 'blurb_ar' => 'رصيد المتاجر وتذاكر المواسم والعملات داخل الألعاب.', 'icon' => 'gamepad', 'hue' => 217, 'blurb' => 'Store credit, season passes and in‑game currency.'],
+        ['slug' => 'food', 'name' => 'Food & Delivery', 'name_ar' => 'الطعام والتوصيل', 'blurb_ar' => 'المطاعم والبقالة ورصيد التوصيل.', 'icon' => 'utensils', 'hue' => 22, 'blurb' => 'Restaurants, groceries and delivery credit.'],
+        ['slug' => 'shopping', 'name' => 'Shopping', 'name_ar' => 'التسوق', 'blurb_ar' => 'الأزياء والإلكترونيات ومستلزمات المنزل.', 'icon' => 'tag', 'hue' => 330, 'blurb' => 'Fashion, electronics and home.'],
+        ['slug' => 'travel', 'name' => 'Travel', 'name_ar' => 'السفر', 'blurb_ar' => 'رحلات الطيران والإقامة والتنقل.', 'icon' => 'plane', 'hue' => 192, 'blurb' => 'Flights, stays and rides.'],
+        ['slug' => 'software', 'name' => 'Apps & Software', 'name_ar' => 'التطبيقات والبرامج', 'blurb_ar' => 'أدوات الإنتاجية والحماية والتخزين السحابي.', 'icon' => 'layers', 'hue' => 150, 'blurb' => 'Productivity, security and cloud storage.'],
     ];
 
     /**
@@ -59,6 +59,30 @@ class CatalogSeeder extends Seeder
             [['1 year', 71.88, false], ['2 years', 143.76, true]]],
     ];
 
+    /** Arabic title and blurb per deal slug. */
+    private const DEALS_AR = [
+        'lumen-premium' => ['الباقة المميزة', 'بث بدقة 4K بدون إعلانات على أربع شاشات، مع إمكانية التنزيل.'],
+        'tempo-family' => ['الباقة العائلية', 'ستة حسابات، واستماع دون اتصال، وصوت عالي الجودة.'],
+        'pixelforge-credit' => ['رصيد المتجر', 'استخدمه لشراء الألعاب والإضافات من متجر PixelForge.'],
+        'questline-pass' => ['تذكرة الموسم', 'افتح الموسم كاملًا: 100 مستوى من المكافآت وخريطتان جديدتان.'],
+        'nomad-eats' => ['رصيد التوصيل', 'اطلب من آلاف المطاعم. الرصيد لا تنتهي صلاحيته.'],
+        'fresh-basket' => ['قسيمة البقالة', 'خضروات طازجة ومستلزمات المطبخ تصلك في اليوم نفسه.'],
+        'atelier-gift' => ['بطاقة هدايا', 'أزياء وتجميل ومستلزمات منزلية من أكثر من 400 مصمم.'],
+        'circuit-voucher' => ['قسيمة الإلكترونيات', 'هواتف وحواسيب وإكسسوارات، عبر الإنترنت أو في المتجر.'],
+        'dune-air' => ['قسيمة طيران', 'استخدمها لأي تذكرة على 120 وجهة، شاملة الضرائب.'],
+        'oasis-stays' => ['رصيد الفنادق', 'احجز فنادق ومنتجعات مميزة في 60 دولة.'],
+        'noteworthy-pro' => ['النسخة الاحترافية · سنة', 'ملاحظات غير محدودة، ومزامنة بين أجهزتك، وبحث ذكي.'],
+        'vaultline-vpn' => ['اشتراك VPN', 'تصفح خاص على عدد غير محدود من الأجهزة، دون حفظ أي سجلات.'],
+    ];
+
+    private const REGIONS_AR = ['Worldwide' => 'جميع الدول', 'GCC only' => 'دول الخليج فقط', 'GCC & Europe' => 'الخليج وأوروبا'];
+
+    /** Option labels that read differently in Arabic; currency labels like "$25" stay as they are. */
+    private const LABELS_AR = [
+        '1 month' => 'شهر واحد', '3 months' => '3 أشهر', '6 months' => '6 أشهر', '12 months' => '12 شهرًا',
+        '1 year' => 'سنة واحدة', '2 years' => 'سنتان', 'Season 12' => 'الموسم 12',
+    ];
+
     /** No 0/O or 1/I, so codes are easy to read aloud and retype. */
     private const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -73,9 +97,12 @@ class CatalogSeeder extends Seeder
                 'category_id' => $categories[$cat]->id,
                 'merchant' => $merchant,
                 'title' => $title,
+                'title_ar' => self::DEALS_AR[$slug][0] ?? null,
                 'blurb' => $blurb,
+                'blurb_ar' => self::DEALS_AR[$slug][1] ?? null,
                 'hue' => $hue,
                 'region' => $region,
+                'region_ar' => self::REGIONS_AR[$region] ?? null,
                 'rating' => $rating,
                 'reviews_count' => $reviews,
                 'sold_count' => $sold,
@@ -86,6 +113,7 @@ class CatalogSeeder extends Seeder
             foreach ($options as $i => [$label, $usd, $onSale]) {
                 $price = $this->demoPrice($usd);
                 $option = $deal->options()->updateOrCreate(['label' => $label], [
+                    'label_ar' => self::LABELS_AR[$label] ?? null,
                     'price_minor' => $price,
                     'compare_at_minor' => $onSale ? $this->roundSdg($price / 100 * 1.15) * 100 : null,
                     'sort_order' => $i,

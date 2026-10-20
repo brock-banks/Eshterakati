@@ -24,12 +24,13 @@ class OrderController extends Controller
             $request->validated('email'),
             $request->validated('payment_method'),
             $request->validated('items'),
+            app()->getLocale(),
         );
 
         if ($order->email) {
             // The order exists either way; a mail failure must not fail the request.
             try {
-                Notification::route('mail', $order->email)->notify(new OrderPlaced($order));
+                Notification::route('mail', $order->email)->notify((new OrderPlaced($order))->locale($order->locale));
             } catch (Throwable $e) {
                 report($e);
             }

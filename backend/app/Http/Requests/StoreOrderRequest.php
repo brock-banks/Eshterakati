@@ -58,10 +58,15 @@ class StoreOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'phone.required' => 'Enter your phone number so we can reach you about this order.',
-            'phone.regex' => 'Enter a Sudanese mobile number, like 0912 345 678.',
-            'email.email' => 'That email looks incomplete. Check for a missing “@” or domain.',
-            'payment_method.in' => 'Choose how you’ll pay.',
+            'phone.required' => __('shop.validation.phone_required'),
+            'phone.regex' => __('shop.validation.phone_invalid'),
+            'email.email' => __('shop.validation.email_invalid'),
+            'email.max' => __('shop.validation.email_invalid'),
+            'payment_method.required' => __('shop.validation.payment_method'),
+            'payment_method.in' => __('shop.validation.payment_method'),
+            'items.required' => __('shop.validation.items_required'),
+            'items.min' => __('shop.validation.items_required'),
+            'items.*.quantity.max' => __('shop.validation.quantity_max', ['max' => config('shop.max_quantity_per_item')]),
         ];
     }
 }

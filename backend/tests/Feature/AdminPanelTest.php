@@ -98,8 +98,8 @@ class AdminPanelTest extends TestCase
 
         $order->refresh();
         $this->assertSame(OrderStatus::AwaitingPayment, $order->status);
-        $this->assertStringContainsString('doesn’t match the order total', $order->rejection_reason);
-        $this->assertStringEndsWith('We received SDG 5,000 less.', $order->rejection_reason);
+        $this->assertSame('amount', $order->rejection_code);
+        $this->assertSame('We received SDG 5,000 less.', $order->rejection_note);
     }
 
     public function test_admin_can_add_codes_to_stock(): void

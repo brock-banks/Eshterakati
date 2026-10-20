@@ -4,12 +4,14 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use App\Support\Money;
+use App\Support\PaymentMethods;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Transfer instructions, so the customer can finish paying from another device.
+ * Sent in the order's language (see ->locale() at the call site).
  */
 class OrderPlaced extends Notification
 {
@@ -28,14 +30,21 @@ class OrderPlaced extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $pay = $this->order->paymentDetails();
+        $label = PaymentMethods::label($pay);
+        $ref = ['reference' => $this->order->reference];
 
         return (new MailMessage)
-            ->subject("Complete your payment · {$this->order->reference}")
-            ->greeting('Your codes are reserved')
-            ->line('Transfer **'.Money::format($this->order->total_minor, $this->order->currency)."** with {$pay['name']} ({$pay['provider']}):")
-            ->line("Account number: **{$pay['account_number']}**".($pay['account_name'] ? " · {$pay['account_name']}" : ''))
-            ->line("Write **{$this->order->reference}** in the transfer note.")
-            ->line('Then upload a screenshot of the receipt before '.$this->order->expires_at->format('g:i A, M j').'.')
-            ->action('Upload receipt', $this->order->orderUrl());
+            ->subject(__('shop.mail.placed.subject', $ref))
+            ->greeting(__('shop.mail.placed.greeting'))
+            ->line(__('shop.mail.placed.transfer', [
+                'amount' => Money::format($this->order->total_minor, $this->order->currency),
+                'method' => $label['name'],
+                'provider' => $label['provider'],
+            ]))
+            ->line(__('shop.mail.placed.account', ['number' => $pay['account_number']]).($pay['account_name'] ? " · {$pay['account_name']}" : ''))
+            ->line(__('shop.mail.placed.note', $ref))
+            ->line(__('shop.mail.placed.deadline', ['time' => $this->order->deadlineForHumans()]))
+            ->action(__('shop.mail.placed.action'), $this->order->orderUrl())
+            ->salutation(__('shop.mail.salutation'));
     }
 }

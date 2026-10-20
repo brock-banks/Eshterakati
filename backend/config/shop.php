@@ -31,8 +31,14 @@ return [
 
     'payment_window_minutes' => (int) env('SHOP_PAYMENT_WINDOW_MINUTES', 180),
 
-    // Shown to customers while their receipt is being checked.
-    'review_hours' => env('SHOP_REVIEW_HOURS', 'usually within 30 minutes, 9am–11pm'),
+    // Shown to customers while their receipt is being checked, in each storefront language.
+    'review_hours' => [
+        'en' => env('SHOP_REVIEW_HOURS', 'usually within 30 minutes, 9am–11pm'),
+        'ar' => env('SHOP_REVIEW_HOURS_AR', 'عادةً خلال 30 دقيقة، من 9 صباحًا حتى 11 مساءً'),
+    ],
+
+    // Times in customer emails (payment deadlines) are written in this zone.
+    'timezone' => env('SHOP_TIMEZONE', 'Africa/Khartoum'),
 
     // Receives an email for every receipt that needs checking.
     'admin_email' => env('SHOP_ADMIN_EMAIL'),
@@ -47,19 +53,25 @@ return [
     'payment_methods' => [
         'bankak' => [
             'name' => 'Bankak',
+            'name_ar' => 'بنكك',
             'provider' => 'Bank of Khartoum',
+            'provider_ar' => 'بنك الخرطوم',
             'account_name' => env('PAY_BANKAK_ACCOUNT_NAME'),
             'account_number' => env('PAY_BANKAK_ACCOUNT_NUMBER'),
         ],
         'ocash' => [
             'name' => 'O-Cash',
+            'name_ar' => 'أوكاش',
             'provider' => 'Omdurman National Bank',
+            'provider_ar' => 'بنك أم درمان الوطني',
             'account_name' => env('PAY_OCASH_ACCOUNT_NAME'),
             'account_number' => env('PAY_OCASH_ACCOUNT_NUMBER'),
         ],
         'fawry' => [
             'name' => 'Fawry',
+            'name_ar' => 'فوري',
             'provider' => 'Faisal Islamic Bank',
+            'provider_ar' => 'بنك فيصل الإسلامي',
             'account_name' => env('PAY_FAWRY_ACCOUNT_NAME'),
             'account_number' => env('PAY_FAWRY_ACCOUNT_NUMBER'),
         ],

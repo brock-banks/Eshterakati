@@ -97,3 +97,12 @@ Theme: `prefers-color-scheme` by default. `html[data-theme="light"|"dark"]` forc
 - Animating width, height or top. Decorative motion. Ignoring reduced motion.
 - `left`/`right`/`margin-left` in new CSS. Use logical properties so RTL keeps working.
 - Real brand names or logos without a licence.
+
+## Arabic & RTL
+
+- `<html lang="ar" dir="rtl">` comes from the route (`/ar`). All CSS uses logical properties, and directional icons use `.flip-rtl`.
+- **No letter‑spacing in Arabic.** Tracking breaks letter joining. `html[lang="ar"]` resets it on everything except `.code-value`/`.copy-value`.
+- **Line height:** display styles (large title, hero, title1, section titles, big prices) use 1.35 in Arabic so diacritics aren't clipped.
+- **Digits:** Western (`nu-latn`) everywhere, so prices and account numbers match banking apps and what people type.
+- **Bidi:** wrap mixed‑direction values in `<bdi>` (references, percentages, amounts in sentences). Use `dir="auto"` where content may be either (copy rows), and `dir="ltr"` for codes, phone and transaction inputs.
+- **Language switch:** shows the other language in its own script ("English" / "العربية"), with `lang` set on the label for screen readers.

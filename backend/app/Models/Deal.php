@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CouponCodeStatus;
+use App\Models\Concerns\HasArabicCopy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +12,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
-    'slug', 'category_id', 'merchant', 'title', 'blurb', 'hue', 'region',
+    'slug', 'category_id', 'merchant', 'title', 'title_ar', 'blurb', 'blurb_ar', 'hue', 'region', 'region_ar',
     'rating', 'reviews_count', 'sold_count', 'is_featured', 'is_active', 'ends_at',
 ])]
 class Deal extends Model
 {
+    use HasArabicCopy;
+
     /**
      * Get the attributes that should be cast.
      *

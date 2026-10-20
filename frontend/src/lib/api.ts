@@ -1,4 +1,5 @@
 import { cacheLife } from "next/cache";
+import type { Locale } from "@/i18n/config";
 import { fixtureCatalog } from "./fixtures";
 import type { Category, Deal, DealOption, PaymentMethod } from "./types";
 
@@ -40,41 +41,41 @@ const toDeal = (d: ApiDeal): Deal => ({
   options: d.options.map(toOption),
 });
 
-async function request<T>(path: string): Promise<T | null> {
-  const res = await fetch(`${API_URL}${path}`, { headers: { Accept: "application/json" } });
+async function request<T>(path: string, lang: Locale): Promise<T | null> {
+  const res = await fetch(`${API_URL}${path}`, { headers: { Accept: "application/json", "Accept-Language": lang } });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Catalogue request ${path} failed with ${res.status}`);
   return ((await res.json()) as { data: T }).data;
 }
 
-export async function getCategories(): Promise<Category[]> {
+export async function getCategories(lang: Locale): Promise<Category[]> {
   "use cache";
   cacheLife("minutes");
-  if (!API_URL) return fixtureCatalog(Date.now()).categories;
-  const rows = (await request<ApiCategory[]>("/categories")) ?? [];
+  if (!API_URL) return fixtureCatalog(Date.now(), lang).categories;
+  const rows = (await request<ApiCategory[]>("/categories", lang)) ?? [];
   return rows.map((c) => ({ slug: c.slug, name: c.name, icon: c.icon, hue: c.hue, blurb: c.blurb, dealsCount: c.deals_count ?? 0 }));
 }
 
 /** Whole listed catalogue, most popular first. Small enough to filter and sort in the UI for now. */
-export async function getDeals(): Promise<Deal[]> {
+export async function getDeals(lang: Locale): Promise<Deal[]> {
   "use cache";
   cacheLife("minutes");
-  if (!API_URL) return fixtureCatalog(Date.now()).deals;
-  return ((await request<ApiDeal[]>("/deals")) ?? []).map(toDeal);
+  if (!API_URL) return fixtureCatalog(Date.now(), lang).deals;
+  return ((await request<ApiDeal[]>("/deals", lang)) ?? []).map(toDeal);
 }
 
-export async function getDeal(slug: string): Promise<Deal | null> {
+export async function getDeal(slug: string, lang: Locale): Promise<Deal | null> {
   "use cache";
   cacheLife("minutes");
-  if (!API_URL) return fixtureCatalog(Date.now()).deals.find((d) => d.slug === slug) ?? null;
-  const deal = await request<ApiDeal>(`/deals/${encodeURIComponent(slug)}`);
+  if (!API_URL) return fixtureCatalog(Date.now(), lang).deals.find((d) => d.slug === slug) ?? null;
+  const deal = await request<ApiDeal>(`/deals/${encodeURIComponent(slug)}`, lang);
   return deal && toDeal(deal);
 }
 
 /** Accounts customers can transfer to. Empty without the API: checkout needs the backend. */
-export async function getPaymentMethods(): Promise<PaymentMethod[]> {
+export async function getPaymentMethods(lang: Locale): Promise<PaymentMethod[]> {
   "use cache";
   cacheLife("minutes");
   if (!API_URL) return [];
-  return (await request<PaymentMethod[]>("/payment-methods")) ?? [];
+  return (await request<PaymentMethod[]>("/payment-methods", lang)) ?? [];
 }

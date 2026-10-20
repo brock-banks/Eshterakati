@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Enums\OrderStatus;
 use App\Models\Order;
+use App\Support\PaymentMethods;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,6 +24,7 @@ class OrderResource extends JsonResource
     public function toArray(Request $request): array
     {
         $pay = $this->paymentDetails();
+        $label = $pay ? PaymentMethods::label($pay) : null;
         $paid = $this->status === OrderStatus::Paid;
 
         return [
@@ -35,12 +37,12 @@ class OrderResource extends JsonResource
             'created_at' => $this->created_at->toIso8601String(),
             'expires_at' => $this->expires_at?->toIso8601String(),
             'paid_at' => $this->paid_at?->toIso8601String(),
-            'rejection_reason' => $this->rejection_reason,
-            'review_time' => config('shop.review_hours'),
+            'rejection_reason' => $this->rejectionMessage(),
+            'review_time' => config('shop.review_hours.'.app()->getLocale()) ?? config('shop.review_hours.en'),
             'payment' => [
                 'method' => $this->payment_method,
-                'name' => $pay['name'] ?? $this->payment_method,
-                'provider' => $pay['provider'] ?? null,
+                'name' => $label['name'] ?? $this->payment_method,
+                'provider' => $label['provider'] ?? null,
                 'account_name' => $pay['account_name'] ?? null,
                 'account_number' => $pay['account_number'] ?? null,
             ],
@@ -48,11 +50,11 @@ class OrderResource extends JsonResource
             'items' => $this->items->map(fn ($item) => [
                 'quantity' => $item->quantity,
                 'unit_price_minor' => $item->unit_price_minor,
-                'option' => ['id' => $item->option->id, 'label' => $item->option->label],
+                'option' => ['id' => $item->option->id, 'label' => $item->option->localized('label')],
                 'deal' => [
                     'slug' => $item->option->deal->slug,
                     'merchant' => $item->option->deal->merchant,
-                    'title' => $item->option->deal->title,
+                    'title' => $item->option->deal->localized('title'),
                     'hue' => $item->option->deal->hue,
                 ],
                 'codes' => $paid

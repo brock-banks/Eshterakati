@@ -6,7 +6,6 @@ import type { BagLine, LineSnapshot, Order, OrderRef, OwnedCode } from "./types"
  * When accounts land, `codes` moves to the API and this keeps only UI preferences.
  */
 export type Theme = "system" | "light" | "dark";
-export type Dir = "ltr" | "rtl";
 export type State = {
   bag: BagLine[];
   /** Orders placed on this device (guest checkout). */
@@ -14,7 +13,6 @@ export type State = {
   codes: OwnedCode[];
   recent: string[];
   theme: Theme;
-  dir: Dir;
   prefs: { drops: boolean; expiry: boolean };
   /** Last contact details, to prefill checkout. */
   email: string;
@@ -27,7 +25,6 @@ const DEFAULTS: State = {
   codes: [],
   recent: [],
   theme: "system",
-  dir: "ltr",
   prefs: { drops: true, expiry: true },
   email: "",
   phone: "",

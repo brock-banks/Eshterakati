@@ -1,17 +1,21 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { update, useStore, type Dir, type Theme } from "@/lib/store";
+import type { Locale } from "@/i18n/config";
+import { useI18n } from "@/i18n/I18nProvider";
+import { update, useStore, type Theme } from "@/lib/store";
+import { useSwitchLanguage } from "./Header";
 import { Icon, type IconName } from "./Icon";
 import { SegmentedControl } from "./SegmentedControl";
 import { useUI } from "./UIProvider";
 
 export function AccountView() {
   const { toast } = useUI();
+  const { dict: d, lang } = useI18n();
+  const switchLanguage = useSwitchLanguage();
   const theme = useStore((s) => s.theme);
-  const dir = useStore((s) => s.dir);
   const prefs = useStore((s) => s.prefs);
-  const soon = () => toast("Not available yet.");
+  const soon = () => toast(d.common.notAvailable);
 
   const row = (icon: IconName, hue: number, title: string) => (
     <li key={title}>
@@ -51,63 +55,63 @@ export function AccountView() {
         </span>
         <div className="profile-main">
           <h2 className="headline" id="profile-h">
-            Shopping as a guest
+            {d.account.guestTitle}
           </h2>
-          <p className="subhead secondary">Sign in to sync your codes across devices and get reminders before they expire.</p>
+          <p className="subhead secondary">{d.account.guestBody}</p>
         </div>
         <button className="btn btn-filled" type="button" onClick={soon}>
-          Sign In
+          {d.account.signIn}
         </button>
       </section>
 
-      <h2 className="list-header">Appearance</h2>
+      <h2 className="list-header">{d.account.appearance}</h2>
       <ul className="list" role="list">
+        <li className="list-row has-icon wrap">
+          <span className="row-icon" style={{ "--h": 205 } as CSSProperties}>
+            <Icon name="globe" />
+          </span>
+          <span className="list-row-main">{d.account.language}</span>
+          {/* Each language is named in itself, so it's recognisable whichever is active. */}
+          <SegmentedControl<Locale>
+            label={d.account.language}
+            segments={[
+              { value: "ar", label: "العربية" },
+              { value: "en", label: "English" },
+            ]}
+            value={lang}
+            onChange={(v) => v !== lang && switchLanguage(v)}
+          />
+        </li>
         <li className="list-row has-icon wrap">
           <span className="row-icon" style={{ "--h": 240 } as CSSProperties}>
             <Icon name="moon" />
           </span>
-          <span className="list-row-main">Theme</span>
+          <span className="list-row-main">{d.account.theme}</span>
           <SegmentedControl<Theme>
-            label="Theme"
+            label={d.account.theme}
             segments={[
-              { value: "system", label: "Auto" },
-              { value: "light", label: "Light" },
-              { value: "dark", label: "Dark" },
+              { value: "system", label: d.account.auto },
+              { value: "light", label: d.account.light },
+              { value: "dark", label: d.account.dark },
             ]}
             value={theme}
             onChange={(v) => update(() => ({ theme: v }))}
           />
         </li>
-        <li className="list-row has-icon wrap">
-          <span className="row-icon" style={{ "--h": 205 } as CSSProperties}>
-            <Icon name="globe" />
-          </span>
-          <span className="list-row-main">Layout direction</span>
-          <SegmentedControl<Dir>
-            label="Layout direction"
-            segments={[
-              { value: "ltr", label: "LTR", ariaLabel: "Left to right" },
-              { value: "rtl", label: "RTL", ariaLabel: "Right to left (Arabic)" },
-            ]}
-            value={dir}
-            onChange={(v) => update(() => ({ dir: v }))}
-          />
-        </li>
-      </ul>
-      <p className="list-footer">RTL previews the Arabic layout. Text is English‑only for now.</p>
-
-      <h2 className="list-header">Notifications</h2>
-      <ul className="list" role="list">
-        {toggle("drops", "Price drops", "When a deal you viewed gets cheaper")}
-        {toggle("expiry", "Expiry reminders", "7 days before an unused code expires")}
       </ul>
 
-      <h2 className="list-header">Support</h2>
+      <h2 className="list-header">{d.account.notifications}</h2>
       <ul className="list" role="list">
-        {row("help", 205, "Help Center")}
-        {row("mail", 145, "Contact Support")}
-        {row("refund", 28, "Refund Policy")}
-        {row("doc", 240, "Terms & Privacy")}
+        {toggle("drops", d.account.drops, d.account.dropsBody)}
+        {toggle("expiry", d.account.expiry, d.account.expiryBody)}
+      </ul>
+
+      <h2 className="list-header">{d.account.support}</h2>
+      <ul className="list" role="list">
+        {row("help", 205, d.account.help)}
+        {row("mail", 145, d.account.contact)}
+        {row("refund", 28, d.account.refund)}
+        {row("doc", 240, d.account.terms)}
       </ul>
     </>
   );

@@ -26,20 +26,16 @@ class SubmitReceipt
         $order->expireIfDue();
 
         if ($order->status === OrderStatus::Expired) {
-            throw ValidationException::withMessages([
-                'receipt' => 'This order expired before a receipt arrived, and its codes were released. If you already transferred the money, contact us with your receipt and we’ll sort it out.',
-            ]);
+            throw ValidationException::withMessages(['receipt' => __('shop.receipt.expired')]);
         }
 
         if ($order->status !== OrderStatus::AwaitingPayment) {
-            throw ValidationException::withMessages(['receipt' => 'This order isn’t waiting for a payment.']);
+            throw ValidationException::withMessages(['receipt' => __('shop.receipt.not_waiting')]);
         }
 
         $reference = PaymentReceipt::normalizeReference($transactionReference);
         if (strlen($reference) < 4) {
-            throw ValidationException::withMessages([
-                'transaction_reference' => 'Copy the transaction number exactly as it appears on the receipt.',
-            ]);
+            throw ValidationException::withMessages(['transaction_reference' => __('shop.validation.reference_short')]);
         }
         $sha256 = hash_file('sha256', $file->getRealPath());
 
@@ -51,9 +47,7 @@ class SubmitReceipt
             ->exists();
 
         if ($reused) {
-            throw ValidationException::withMessages([
-                'transaction_reference' => 'This receipt has already been used for another order. If you think that’s a mistake, contact us.',
-            ]);
+            throw ValidationException::withMessages(['transaction_reference' => __('shop.receipt.reused')]);
         }
 
         $path = $file->storeAs("receipts/{$order->public_id}", Str::ulid().'.'.$file->extension(), 'local');
@@ -68,12 +62,13 @@ class SubmitReceipt
                 'transaction_reference' => $reference,
                 'status' => ReceiptStatus::Pending,
             ]);
-            $order->update(['status' => OrderStatus::InReview, 'rejection_reason' => null]);
+            $order->update(['status' => OrderStatus::InReview, 'rejection_code' => null, 'rejection_note' => null]);
         });
 
         if ($admin = config('shop.admin_email')) {
             try {
-                Notification::route('mail', $admin)->notify(new ReceiptSubmitted($order));
+                // Staff read the admin in English.
+                Notification::route('mail', $admin)->notify((new ReceiptSubmitted($order))->locale('en'));
             } catch (Throwable $e) {
                 report($e);
             }

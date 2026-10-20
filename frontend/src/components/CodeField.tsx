@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 import { maskCode } from "@/lib/format";
 import { Icon } from "./Icon";
 import { useUI } from "./UIProvider";
@@ -32,36 +33,37 @@ async function copyText(text: string, container: HTMLElement) {
 /** Shows a code masked by default; it can be copied without revealing it. */
 export function CodeField({ code, merchant, revealed: initiallyRevealed = false }: { code: string; merchant: string; revealed?: boolean }) {
   const { toast } = useUI();
+  const { dict: d, t } = useI18n();
   const [revealed, setRevealed] = useState(initiallyRevealed);
   const [copied, setCopied] = useState(false);
 
   async function onCopy(e: React.MouseEvent<HTMLButtonElement>) {
     const ok = await copyText(code, e.currentTarget.closest("dialog") ?? document.body);
     if (!ok) {
-      toast("Couldn’t copy. Tap the eye to show the code, then select it.");
+      toast(d.codes.copyFailed);
       return;
     }
     setCopied(true);
-    toast("Code copied");
+    toast(d.codes.codeCopied);
     window.setTimeout(() => setCopied(false), 1800);
   }
 
   return (
     <div className="code-field">
-      <span className="visually-hidden">{merchant} code:</span>
+      <span className="visually-hidden">{t(d.codes.codeOf, { merchant })}</span>
       <code className={`code-value${revealed ? "" : " is-masked"}`}>{revealed ? code : maskCode(code)}</code>
       <button
         className="icon-btn"
         type="button"
         aria-pressed={revealed}
-        aria-label="Show code"
+        aria-label={d.codes.showCode}
         onClick={() => setRevealed((r) => !r)}
       >
         <Icon name={revealed ? "eye-off" : "eye"} />
       </button>
       <button className={`btn btn-tinted btn-sm copy-btn${copied ? " is-done" : ""}`} type="button" onClick={onCopy}>
         <Icon name={copied ? "check" : "copy"} />
-        <span className="copy-label">{copied ? "Copied" : "Copy"}</span>
+        <span className="copy-label">{copied ? d.common.copied : d.common.copy}</span>
       </button>
     </div>
   );

@@ -25,4 +25,20 @@ class PaymentMethods
     {
         return static::enabled()->get($key);
     }
+
+    /**
+     * A method's name and bank in the current locale.
+     *
+     * @param  array<string, mixed>  $method
+     * @return array{name: string, provider: string}
+     */
+    public static function label(array $method): array
+    {
+        $ar = app()->getLocale() === 'ar';
+
+        return [
+            'name' => ($ar ? ($method['name_ar'] ?? null) : null) ?: $method['name'],
+            'provider' => ($ar ? ($method['provider_ar'] ?? null) : null) ?: $method['provider'],
+        ];
+    }
 }

@@ -24,13 +24,13 @@ class PlaceOrder
      *
      * @throws ValidationException when an option is unavailable or out of stock
      */
-    public function handle(string $phone, ?string $email, string $paymentMethod, array $items): Order
+    public function handle(string $phone, ?string $email, string $paymentMethod, array $items, string $locale = 'ar'): Order
     {
         $quantities = collect($items)
             ->groupBy('option_id')
             ->map(fn (Collection $lines) => (int) $lines->sum('quantity'));
 
-        return DB::transaction(function () use ($phone, $email, $paymentMethod, $quantities) {
+        return DB::transaction(function () use ($phone, $email, $paymentMethod, $quantities, $locale) {
             $options = DealOption::query()
                 ->whereIn('id', $quantities->keys())
                 ->whereHas('deal', fn ($q) => $q->listed())
@@ -45,7 +45,7 @@ class PlaceOrder
                 $option = $options->get($optionId);
 
                 if (! $option) {
-                    $errors["items.{$optionId}"] = 'This deal is no longer available.';
+                    $errors["items.{$optionId}"] = __('shop.order.unavailable');
 
                     continue;
                 }
@@ -59,9 +59,10 @@ class PlaceOrder
                     ->get();
 
                 if ($codes->count() < $quantity) {
+                    $item = "{$option->deal->merchant} {$option->localized('label')}";
                     $errors["items.{$optionId}"] = $codes->isEmpty()
-                        ? "{$option->deal->merchant} {$option->label} is sold out."
-                        : "Only {$codes->count()} left of {$option->deal->merchant} {$option->label}.";
+                        ? __('shop.order.sold_out', ['item' => $item])
+                        : __('shop.order.only_left', ['item' => $item, 'count' => $codes->count()]);
 
                     continue;
                 }
@@ -78,6 +79,7 @@ class PlaceOrder
                 'access_token' => Str::random(40),
                 'phone' => $phone,
                 'email' => $email,
+                'locale' => $locale,
                 'status' => OrderStatus::AwaitingPayment,
                 'currency' => config('shop.currency'),
                 'total_minor' => $quantities->sum(fn ($qty, $id) => $options[$id]->price_minor * $qty),

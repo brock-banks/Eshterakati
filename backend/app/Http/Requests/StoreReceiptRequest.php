@@ -31,12 +31,14 @@ class StoreReceiptRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'receipt.required' => 'Add a screenshot or photo of your transfer receipt.',
-            'receipt.image' => 'The receipt must be an image (JPG, PNG or WebP).',
-            'receipt.mimes' => 'The receipt must be an image (JPG, PNG or WebP).',
-            'receipt.max' => 'That image is larger than 8 MB. Try a screenshot instead of a photo.',
-            'transaction_reference.required' => 'Enter the transaction number shown on the receipt.',
-            'transaction_reference.min' => 'That transaction number looks too short. Copy it exactly as it appears on the receipt.',
+            'receipt.required' => __('shop.validation.receipt_required'),
+            'receipt.file' => __('shop.validation.receipt_required'),
+            'receipt.image' => __('shop.validation.receipt_image'),
+            'receipt.mimes' => __('shop.validation.receipt_image'),
+            'receipt.max' => __('shop.validation.receipt_max'),
+            'transaction_reference.required' => __('shop.validation.reference_required'),
+            'transaction_reference.min' => __('shop.validation.reference_short'),
+            'transaction_reference.max' => __('shop.validation.reference_short'),
         ];
     }
 }
