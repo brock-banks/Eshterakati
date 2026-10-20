@@ -15,3 +15,20 @@ export function EndsBadge({ endsAt }: { endsAt: string }) {
     </span>
   );
 }
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/** Quiet countdown for deal cards: shown only in the last 24 hours, so urgency stays meaningful. */
+export function EndsSoon({ endsAt }: { endsAt: string }) {
+  const { dict } = useI18n();
+  const now = useNow();
+  if (now === null) return null;
+  const left = new Date(endsAt).getTime() - now;
+  if (left <= 0 || left >= DAY) return null;
+  return (
+    <span className="ends-soon">
+      <Icon name="clock" />
+      {timeLeft(endsAt, now, dict)}
+    </span>
+  );
+}

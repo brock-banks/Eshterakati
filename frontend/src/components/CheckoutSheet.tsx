@@ -245,6 +245,11 @@ export function CheckoutView({ view }: { view: Extract<SheetView, { step: "check
               <Icon name="chevron-left" className="flip-rtl" />
               {d.checkout.back}
             </button>
+          ) : view.from === "pick" ? (
+            <button className="btn btn-plain" type="button" disabled={processing} onClick={() => showView({ step: "pick", deal: view.deal, optionId: view.items[0]?.optionId })}>
+              <Icon name="chevron-left" className="flip-rtl" />
+              {d.common.back}
+            </button>
           ) : undefined
         }
         trailing={processing ? <span /> : undefined}
