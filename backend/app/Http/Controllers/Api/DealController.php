@@ -40,7 +40,7 @@ class DealController extends Controller
             ->get();
 
         $deals = match ($validated['sort'] ?? 'popular') {
-            'savings' => $deals->sortByDesc(fn (Deal $d) => $d->options->max(fn ($o) => $o->discountPercent())),
+            'savings' => $deals->sortByDesc(fn (Deal $d) => $d->options->max(fn ($o) => $o->discountPercent() ?? 0)),
             'ending' => $deals->sortBy(fn (Deal $d) => $d->ends_at?->getTimestamp() ?? PHP_INT_MAX),
             default => $deals->sortByDesc('sold_count'),
         };

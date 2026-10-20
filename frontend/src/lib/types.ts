@@ -7,12 +7,15 @@ export type Category = {
   dealsCount: number;
 };
 
+/** Prices are in minor units of the store currency (SDG: 1 pound = 100 piastres). */
 export type DealOption = {
   id: number;
+  /** The card's own denomination, e.g. "$25". */
   label: string;
-  faceValueCents: number;
-  priceCents: number;
-  discountPercent: number;
+  priceMinor: number;
+  /** Set only when the option is on sale. */
+  compareAtMinor: number | null;
+  discountPercent: number | null;
   /** Only present on the deal detail response. */
   inStock?: boolean;
 };
@@ -33,7 +36,9 @@ export type Deal = {
   options: DealOption[];
 };
 
-/** What the client keeps about a purchasable option, so the bag and wallet don't need the catalogue. */
+export type PaymentMethod = { key: string; name: string; provider: string };
+
+/** What the client keeps about a purchasable option, so the bag doesn't need the catalogue. */
 export type LineSnapshot = {
   optionId: number;
   dealSlug: string;
@@ -41,16 +46,63 @@ export type LineSnapshot = {
   title: string;
   hue: number;
   label: string;
-  priceCents: number;
-  faceValueCents: number;
+  priceMinor: number;
+  compareAtMinor: number | null;
 };
 
 export type BagLine = LineSnapshot & { qty: number };
 
-export type OwnedCode = LineSnapshot & {
+export type OrderStatus = "awaiting_payment" | "in_review" | "paid" | "expired" | "cancelled";
+
+export type OrderItem = {
+  quantity: number;
+  unitPriceMinor: number;
+  optionId: number;
+  label: string;
+  dealSlug: string;
+  merchant: string;
+  title: string;
+  hue: number;
+  codes: { id: number; code: string; expiresAt: string | null }[];
+};
+
+export type Order = {
+  id: string;
+  reference: string;
+  status: OrderStatus;
+  currency: string;
+  totalMinor: number;
+  createdAt: string;
+  expiresAt: string | null;
+  paidAt: string | null;
+  rejectionReason: string | null;
+  reviewTime: string;
+  receiptSubmittedAt: string | null;
+  payment: { method: string; name: string; provider: string | null; accountName: string | null; accountNumber: string | null };
+  items: OrderItem[];
+};
+
+/** A guest's handle on an order: the token proves it's theirs. */
+export type OrderRef = {
+  id: string;
+  token: string;
+  reference: string;
+  totalMinor: number;
+  createdAt: string;
+  status: OrderStatus;
+};
+
+export type OwnedCode = {
   id: string;
   code: string;
+  orderId: string;
   purchasedAt: string;
   expiresAt: string | null;
   status: "active" | "used";
+  dealSlug: string;
+  merchant: string;
+  title: string;
+  hue: number;
+  label: string;
+  priceMinor: number;
 };

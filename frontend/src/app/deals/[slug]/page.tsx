@@ -7,7 +7,7 @@ import { DealPurchase } from "@/components/DealPurchase";
 import { EndsBadge } from "@/components/EndsBadge";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/Icon";
-import { getCategories, getDeal, getDeals } from "@/lib/api";
+import { getCategories, getDeal, getDeals, getPaymentMethods } from "@/lib/api";
 import { bestPercent, compact, LOCALE } from "@/lib/format";
 
 export async function generateStaticParams() {
@@ -21,8 +21,9 @@ export async function generateMetadata({ params }: PageProps<"/deals/[slug]">): 
 
 export default async function DealPage({ params }: PageProps<"/deals/[slug]">) {
   const { slug } = await params;
-  const [deal, categories, all] = await Promise.all([getDeal(slug), getCategories(), getDeals()]);
+  const [deal, categories, all, methods] = await Promise.all([getDeal(slug), getCategories(), getDeals(), getPaymentMethods()]);
   if (!deal) notFound();
+  const pct = bestPercent(deal);
   const cat = categories.find((c) => c.slug === deal.category);
   const related = [...all.filter((d) => d.category === deal.category), ...all.filter((d) => d.category !== deal.category)]
     .filter((d) => d.slug !== deal.slug)
@@ -37,7 +38,7 @@ export default async function DealPage({ params }: PageProps<"/deals/[slug]">) {
 
       <div className="deal-layout">
         <div className="deal-art" style={{ "--h": deal.hue } as CSSProperties} aria-hidden="true">
-          <span className="badge">Save up to {bestPercent(deal)}%</span>
+          {pct !== null && <span className="badge">Sale · up to −{pct}%</span>}
           <span className="tile tile-xl">{deal.merchant[0]}</span>
           <span className="deal-art-name">{deal.merchant}</span>
         </div>
@@ -68,9 +69,16 @@ export default async function DealPage({ params }: PageProps<"/deals/[slug]">) {
 
           <ul className="assurances" role="list">
             <li>
+              <Icon name="wallet" />
+              <span>
+                <strong>Pay by bank transfer</strong>
+                {methods.length > 0 && ` with ${new Intl.ListFormat("en", { type: "disjunction" }).format(methods.map((m) => m.name))}`}, then upload the receipt.
+              </span>
+            </li>
+            <li>
               <Icon name="bolt" />
               <span>
-                <strong>Instant delivery.</strong> Shown on screen and emailed after payment.
+                <strong>Codes within minutes</strong> of us confirming your transfer.
               </span>
             </li>
             <li>
@@ -96,7 +104,7 @@ export default async function DealPage({ params }: PageProps<"/deals/[slug]">) {
           </h2>
         </div>
         <ol className="steps" role="list">
-          <li>Copy your code from My Codes after purchase.</li>
+          <li>After we confirm your transfer, copy the code from My Codes.</li>
           <li>Open {deal.merchant} and go to Account › Redeem Code.</li>
           <li>Paste the code and confirm. The value is added instantly.</li>
         </ol>

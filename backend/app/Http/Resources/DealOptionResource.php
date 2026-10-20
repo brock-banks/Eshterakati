@@ -17,8 +17,8 @@ class DealOptionResource extends JsonResource
         return [
             'id' => $this->id,
             'label' => $this->label,
-            'face_value_cents' => $this->face_value_cents,
-            'price_cents' => $this->price_cents,
+            'price_minor' => $this->price_minor,
+            'compare_at_minor' => $this->discountPercent() ? $this->compare_at_minor : null,
             'discount_percent' => $this->discountPercent(),
             'in_stock' => $this->when(
                 isset($this->available_codes_count),

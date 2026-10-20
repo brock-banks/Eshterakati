@@ -1,22 +1,22 @@
 # Eshterakati — UX specification
 
-Status: v1, first pass · Platform: responsive web (phone first) · Design language: Apple Human Interface Guidelines, adapted for the web (see [`design-system/MASTER.md`](../design-system/MASTER.md))
+Status: v2, Sudan market with receipt payments · Platform: responsive web (phone first) · Design language: Apple Human Interface Guidelines, adapted for the web (see [`design-system/MASTER.md`](../design-system/MASTER.md))
 
 ## 1. Product in one line
 
-People buy digital coupon and gift codes (streaming, gaming, food delivery, shopping, travel, software) for less than their face value, get the code instantly, and redeem it with the merchant.
+People in **Sudan** buy gift cards and subscription codes (streaming, gaming, shopping, software, often USD‑denominated cards like "$25") **in Sudanese pounds**, pay from the banking app they already use (Bankak, O‑Cash, Fawry), and get their codes within minutes of the store confirming the transfer. The store sells its own stock (first‑party).
 
-**The core UX risk is trust.** A code is an invisible product bought from a middleman. Every screen has to answer one of: *Is this real? Will it work where I live? What happens if it doesn't?*
+**The core UX risks are trust and waiting.** A code is an invisible product, and payment is a manual bank transfer. Every screen has to answer one of: *Is this real? Did my payment arrive? How long until I get my code? What if it doesn't work?*
 
 ## 2. Who it's for
 
 | Person | Job to be done | What they need from us |
 | --- | --- | --- |
-| **Deal hunter** | "Pay less for the subscriptions I already have." | Clear savings in money and %, a sort by savings, and countdowns that are honest. |
-| **Gamer topping up** | "Get store credit right now, mid‑session." | The shortest possible path: deal → Buy Now → code on screen → copy. Guest checkout. |
-| **Gift buyer** | "Send someone a gift card." | Several values, buying more than one, and the code by email so they can forward it. |
+| **Subscriber** | "Keep my streaming/music subscription going without a foreign card." | Clear SDG prices per period, and an easy repeat purchase. |
+| **Gamer topping up** | "Get store credit tonight." | The shortest path: deal → Buy Now → transfer → upload → code. Guest checkout, with live status while waiting. |
+| **Gift buyer** | "Send someone a gift card." | Several values, buying more than one, and the codes by email so they can forward them. |
 
-Usage context: mostly phones, often one‑handed and in a hurry. Desktop is for bigger baskets.
+Usage context: phones on mobile data, sometimes unreliable connections and bank‑app outages. People are used to paying by sending a transfer screenshot.
 
 ## 3. Principles
 
@@ -25,7 +25,8 @@ Usage context: mostly phones, often one‑handed and in a hurry. Desktop is for 
 3. **Depth** (HIG) — tasks (Bag, Checkout) open in a sheet over the page, so people never lose their place.
 4. **Trust, shown not claimed** — region, validity, verification and the refund promise sit right next to the price, not in a footer.
 5. **Codes are secrets** — hidden by default in the wallet, can be copied without being revealed, and are emailed as a backup.
-6. **Forgiving** — Undo instead of confirmation dialogs for reversible actions (remove from Bag, Mark as Used).
+6. **Always show where the money is** — after checkout there is always a page that says which step the order is at, what the shopper must do next, and how long they have.
+7. **Forgiving** — Undo instead of confirmation dialogs for reversible actions (remove from Bag, Mark as Used).
 
 ## 4. Information architecture
 
@@ -35,10 +36,12 @@ Browse (/browse)        category grid · all deals
   └ Category (/browse/:category?sort=popular|savings|ending)
       └ Deal (/deals/:slug)            options · price · buy · how to redeem · terms · related
 Search (/search?q=)     recent · suggested · results
-My Codes (/codes?show=active|used)     wallet of purchased codes
+My Codes (/codes?show=active|used)     orders in progress · wallet of purchased codes
+Order (/orders/:id)     transfer details → upload receipt → in review → codes  (opens on this device, or via ?t= link in email)
 Account (/account)      sign in · appearance (theme, RTL) · notifications · support
 
-Sheets (modal, over any page):  Bag → Checkout → Order Complete
+Sheets (modal, over any page):  Bag → Checkout  (then the Order page)
+Admin (/admin on the Laravel app):  Orders review queue · Deals & stock · Categories
 ```
 
 Every screen and filter can be reached by URL, so back/forward, sharing and refresh all work.
@@ -56,34 +59,38 @@ Every screen and filter can be reached by URL, so back/forward, sharing and refr
 
 ## 6. Key flows
 
-### Flow 1 — Buy now (the main path)
+### Flow 1 — Buy and pay by transfer (the main path)
 
 ```mermaid
 flowchart LR
-  A[Discover / Browse / Search] --> B[Deal page]
-  B -->|choose value| B
-  B -->|Buy Now| C[Checkout sheet]
-  C -->|email + pay| D{Payment}
-  D -->|ok| E[Order Complete: codes shown, Copy]
-  D -->|422 sold out / invalid| C
-  E -->|View My Codes| F[My Codes]
+  A[Deal page] -->|Buy Now| B[Checkout sheet: phone, email optional, wallet]
+  B -->|Place Order| C[Order page: amount, account, reference, deadline]
+  C -->|transfer in bank app, upload screenshot + transaction no.| D[In review]
+  D -->|admin sees money in account| E[Paid: codes shown + emailed]
+  D -->|admin rejects with reason| C
+  C -->|deadline passes| F[Expired: codes released]
 ```
 
-- **Buy Now** checks out *only that item*. It never sweeps in whatever else is in the Bag.
-- Guest checkout: email is the only field. It's pre‑filled from the last order and uses `autocomplete="email"`.
-- Validation runs on blur and on submit, never on each keystroke. Errors sit under the field, say what to fix, and focus moves to the field.
-- While paying, the button shows a spinner and "Processing…", the sheet can't be dismissed, and inputs are disabled.
-- On failure: "The payment didn't go through. **You haven't been charged.** Please try again." Every error tells people whether they were charged.
+- **Place Order reserves the codes**, so stock can't run out while someone is in their banking app.
+- The order page gives the three things to copy (amount digits only, account number, reference) with one‑tap Copy, and a "held until 5:57 PM · 2h 14m left" deadline.
+- Upload: one big target ("Add receipt screenshot"), a preview with **Change**, and the transaction number with a hint showing the Arabic label "رقم العملية". Images are resized on the phone before upload.
+- After upload: "We're checking your transfer — {review hours}". The page refreshes itself, and you can close it. Codes also appear in My Codes and by email.
+- Rejection reasons are written for the customer and say what to do next. The codes stay held for a fresh window.
+- Every failed request says what happened and how to fix it. Placing an order never charges anyone.
 
 ### Flow 2 — Build a basket
 
-Deal → **Add to Bag** (toast: "Added to Bag · View Bag") → Bag sheet (stepper 1–10, remove with **Undo**) → Check Out → same Checkout as flow 1, with a "‹ Bag" back button.
+Deal → **Add to Bag** (toast: "Added to Bag · View Bag") → Bag sheet (stepper 1–10, remove with **Undo**) → Check Out → same Checkout as flow 1, with a "‹ Bag" back button. One order means one transfer.
 
 ### Flow 3 — Use a code later
 
 My Codes → find the pass → **Copy** (no need to reveal) → redeem with the merchant → **Mark as Used** (moves to Used, with **Undo**). "How to Redeem" deep‑links to the deal's steps.
 
-### Flow 4 — A code doesn't work *(designed, not built)*
+### Flow 4 — Admin reviews a receipt (built, in `/admin`)
+
+Orders badge shows receipts waiting → open order → receipt image beside **Amount to look for** and **Reference** → check the bank account → **Approve & send codes** (confirm: "Yes, money received") or **Reject receipt** (pick a reason and add an optional note; the customer sees full wording). Phone opens WhatsApp for follow‑up. Stock is managed per deal with **Add codes** (paste one per line).
+
+### Flow 5 — A code doesn't work *(designed, not built)*
 
 My Codes → **Report a Problem** → sheet: "What happened?" (Rejected as invalid · Already used · Wrong region · Other) + optional screenshot → submitted state with an expected response time → the order status shows "Refund in progress" → refunded. The API marks the code `disputed`; support verifies it with the merchant.
 
@@ -103,13 +110,17 @@ Content priority: today's date eyebrow → large title → **Today's pick** hero
 8. How to redeem (3 numbered steps) · Terms (disclosure) · Related deals.
 
 ### Checkout sheet
-Order summary → "Deliver codes to" (email) → "Pay with" (marked **Test mode** until payments are connected) → Summary (face value, **You save** in green, Total) → **Pay $X** → "Secure checkout · Full refund if a code doesn't work".
+Order summary → Your details: **Phone (WhatsApp)**, required, accepts 09…/+249…; **Email**, optional ("We'll email the payment details and your codes") → **Pay by bank transfer**: one row per configured wallet (Bankak · Bank of Khartoum, O‑Cash, Fawry) → note on what happens next → Summary (sale discount if any, Total) → **Place Order · SDG X** → "Your codes are held for you while you pay".
 
-### Order complete
-Animated check → "You're all set" → each code **revealed** (they've just paid for it), with Copy → **View My Codes** (primary) / Done.
+### Order page (`/orders/:id`)
+Eyebrow "Order ESH‑XXXXX", a large title naming the step, and a 4‑step progress bar (Order placed · Transfer & upload · We confirm · Get your codes) with a summary card beside it.
+- **Awaiting payment:** rejection callout (if any) → deadline banner → "1. Transfer with {wallet}" copy rows → "2. Upload the receipt" → **Submit Receipt**.
+- **In review:** waiting icon, review hours, "you can close this page", link to My Codes.
+- **Paid:** check animation, codes revealed with Copy, **View in My Codes**.
+- **Expired:** codes released; if you already paid, contact us.
 
 ### My Codes
-Segmented control Active (n) / Used (n). Wallet‑style passes: merchant colour header with face value; code field (masked, eye toggle, Copy); bought date and expiry; actions Mark as Used · How to Redeem · Report a Problem. Empty state links to Discover.
+**Orders in progress** list at the top (reference, total, "Pay now" / "In review"), refreshed every 30s, with a toast when codes arrive. Then the segmented control Active (n) / Used (n). Wallet‑style passes: merchant colour header with face value; code field (masked, eye toggle, Copy); bought date and expiry; actions Mark as Used · How to Redeem · Report a Problem. Empty state links to Discover.
 
 ### Search
 Search field (44px, clear button). With an empty query it shows Recent (clearable) and Suggested. Results update as you type (debounced) and the URL tracks the query. The no‑results state suggests trying a category and links to Browse.
@@ -143,13 +154,21 @@ Guest card with Sign In. Appearance: Theme (Auto/Light/Dark) and Layout directio
 - Breakpoints: 480 (compact phone tweaks) · 640 (card grid) · 768 (tab bar → top bar, sheet → centred card) · 900 (two‑column deal page).
 - No horizontal page scroll at 375px. Only the chip row scrolls sideways, with visible overflow as the affordance.
 - **RTL‑ready:** all layout uses logical properties, and directional icons flip. Codes stay LTR (`direction: ltr; unicode-bidi: isolate`). The Account page has an RTL preview toggle.
-- The name *Eshterakati* (اشتراكاتي, "my subscriptions") suggests an Arabic‑speaking market. Arabic copy is the main open localisation task (see below).
+- **Market: Sudan.** Arabic copy is the main open localisation task (see below). The layout is already RTL‑ready, and Arabic is used where shoppers will see it in their bank app ("رقم العملية", "التعليق").
+- Prices are in **SDG** (whole pounds, `SDG 52,000`). Option labels carry the card's own denomination ("$25").
 
-## 11. Open decisions (need the product owner)
+## 11. Decisions
 
-1. **Market & currency** — GCC (SAR/AED) or global USD? Arabic‑first? This drives copy, currency, and payment methods.
-2. **Payments** — which provider (e.g. Stripe, Checkout.com, Tap, HyperPay) and which methods (Apple Pay, mada, STC Pay, cards). Payments are stubbed today.
-3. **Supply** — are we buying inventory from merchants and distributors (first‑party), or running a marketplace of sellers? A marketplace needs seller verification and changes the meaning of "Verified".
-4. **Accounts** — guest‑first (current design) with optional sign‑in, or required accounts? Codes currently live in the browser plus email.
-5. **Brand licensing** — real merchant names and logos need permission from each brand. The demo catalogue uses fictional merchants.
-6. **Refund policy** — the 30‑day window and evidence required for a "code doesn't work" claim.
+| Question | Decision |
+| --- | --- |
+| Market & currency | **Sudan, SDG** |
+| Payments | **Bank transfer + receipt upload, approved by the store** (see [PAYMENTS-SUDAN.md](PAYMENTS-SUDAN.md)). Add an API gateway later if one opens up. |
+| Supply | **First‑party**: the store sells its own codes, loaded via the admin "Add codes" action. |
+| Accounts | **Optional.** Guest checkout with phone (and optional email). Orders live on the device and in the emailed link. Sign‑in later attaches past orders by phone/email. |
+
+### Still open
+1. **Arabic UI**: translate all copy and make RTL the default for Arabic.
+2. **Review hours & staffing**: what to promise ("usually within 30 minutes, 9am–11pm"), and who covers nights and weekends.
+3. **Real prices**: set per option in /admin (the seed uses a placeholder exchange rate). Decide how often to reprice as the pound moves.
+4. **Brand licensing** for real merchant names and logos, and **refund policy** details (30 days? evidence needed?).
+5. **Email provider** for production (the dev setup logs emails). SMS/WhatsApp notifications would reach more people than email.

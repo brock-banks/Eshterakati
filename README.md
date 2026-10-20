@@ -1,15 +1,16 @@
 # Eshterakati
 
-A store for buying verified coupon and gift codes at a discount. Codes appear
-instantly after payment, are emailed as a backup, and are covered by a
-money‑back promise.
+A store in Sudan for gift cards and subscription codes, priced in Sudanese pounds.
+Customers pay by bank transfer from Bankak, O‑Cash or Fawry, upload a screenshot of the
+receipt, and get their codes as soon as the store approves the payment. Accounts are optional.
 
 | Folder | What's in it |
 | --- | --- |
 | [`docs/UX-SPEC.md`](docs/UX-SPEC.md) | UX spec: users, principles, information architecture, flows, screen specs, accessibility, open decisions |
 | [`design-system/MASTER.md`](design-system/MASTER.md) | Apple Human Interface Guidelines design system for the web: tokens, components, rules |
 | [`frontend/`](frontend) | Next.js 16 + React 19 storefront |
-| [`backend/`](backend) | Laravel 13 JSON API: catalogue, encrypted code inventory, orders, order email |
+| [`docs/PAYMENTS-SUDAN.md`](docs/PAYMENTS-SUDAN.md) | Research on Sudanese payment APIs (none public) and how receipt payments work |
+| [`backend/`](backend) | Laravel 13: JSON API (catalogue, encrypted code stock, receipt‑paid orders, emails) and the **Filament admin** at `/admin` |
 
 ## Run it locally
 
@@ -20,9 +21,11 @@ Requirements: PHP 8.3+, Composer, Node 20+.
 cd backend
 composer install
 cp .env.example .env && php artisan key:generate
+# set PAY_BANKAK_ACCOUNT_NUMBER etc. in .env — only methods with an account number are offered
 touch database/database.sqlite
-php artisan migrate --seed
+php artisan migrate --seed          # locally also creates admin@example.com / password
 php artisan serve
+php artisan schedule:work           # second terminal: releases codes from unpaid orders
 
 # 2. Storefront — http://localhost:3000
 cd ../frontend
@@ -31,8 +34,11 @@ npm install
 npm run dev
 ```
 
-The storefront also runs without the API: remove `API_URL` from `.env.local` and it
-uses a built-in copy of the demo catalogue.
+Admin: http://localhost:8000/admin. Review receipts (Orders), manage deals and prices, and
+**Add codes** to stock. Create a real admin with `php artisan make:filament-user` and set `is_admin = 1`.
+
+Without the API (`API_URL` unset) the storefront still browses a built‑in copy of the
+catalogue, but checkout needs the backend.
 
 ## API (v1)
 
@@ -41,10 +47,15 @@ uses a built-in copy of the demo catalogue.
 | `GET` | `/api/v1/categories` | With listed‑deal counts |
 | `GET` | `/api/v1/deals` | `q`, `category`, `featured`, `sort=popular\|savings\|ending` |
 | `GET` | `/api/v1/deals/{slug}` | Includes `in_stock` per option |
-| `POST` | `/api/v1/orders` | `{ email, items: [{ option_id, quantity }] }` → order with plaintext codes (only in this response). Throttled to 10/min. |
+| `GET` | `/api/v1/payment-methods` | Wallets that have an account number configured |
+| `POST` | `/api/v1/orders` | `{ phone, email?, payment_method, items: [{ option_id, quantity }] }` → reserves codes, returns transfer details and a one‑time `access_token` |
+| `GET` | `/api/v1/orders/{id}` | Header `X-Order-Token`. Includes plaintext codes once paid. |
+| `POST` | `/api/v1/orders/{id}/receipt` | Multipart `receipt` (JPG/PNG/WebP ≤ 8 MB) + `transaction_reference`. Header `X-Order-Token`. |
 
-Prices are integers in minor units (`*_cents`). Codes are encrypted at rest and assigned
-from inventory inside a transaction, so an option can't be oversold.
+Order states: `awaiting_payment → in_review → paid`. A rejection sends the order back to
+`awaiting_payment` with a reason. `expired` happens when no receipt arrives in time, and the codes go back
+on sale. Prices are integers in minor units (`*_minor`). Codes are encrypted at rest. A transaction
+number or receipt image can't pay for two orders.
 
 ## Checks
 
@@ -55,6 +66,7 @@ cd frontend && npm run lint && npx tsc --noEmit && npm run build
 
 ## Not built yet
 
-Payments are stubbed (orders are marked paid immediately, and checkout shows **Test mode**).
-Accounts, problem reports and refunds are designed in the UX spec but not implemented.
-Merchants in the seed data are fictional placeholders. See "Open decisions" in the UX spec.
+Arabic translation, customer accounts (orders are kept on the device and in the email link),
+"report a problem" and refunds, and a production mail provider (local dev writes emails to the log).
+Merchants in the seed data are fictional, and prices use a placeholder exchange rate. Set real
+prices in the admin. See "Still open" in the UX spec.

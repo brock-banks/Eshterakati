@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { BagLine, LineSnapshot, OwnedCode } from "./types";
+import type { BagLine, LineSnapshot, Order, OrderRef, OwnedCode } from "./types";
 
 /**
  * Client state for a guest shopper, persisted to localStorage.
@@ -9,26 +9,31 @@ export type Theme = "system" | "light" | "dark";
 export type Dir = "ltr" | "rtl";
 export type State = {
   bag: BagLine[];
+  /** Orders placed on this device (guest checkout). */
+  orders: OrderRef[];
   codes: OwnedCode[];
   recent: string[];
   theme: Theme;
   dir: Dir;
   prefs: { drops: boolean; expiry: boolean };
-  /** Last delivery email, to prefill checkout. */
+  /** Last contact details, to prefill checkout. */
   email: string;
+  phone: string;
 };
 
 const DEFAULTS: State = {
   bag: [],
+  orders: [],
   codes: [],
   recent: [],
   theme: "system",
   dir: "ltr",
   prefs: { drops: true, expiry: true },
   email: "",
+  phone: "",
 };
 
-const KEY = "esh:v1";
+const KEY = "esh:v2";
 export const MAX_QTY = 10;
 
 let state = DEFAULTS;
@@ -65,6 +70,9 @@ function getSnapshot() {
   load();
   return state;
 }
+
+/** Current state outside React rendering (e.g. inside timers). */
+export const readState = getSnapshot;
 
 export function update(fn: (s: State) => Partial<State>) {
   load();
@@ -119,7 +127,38 @@ export function restoreLine(line: BagLine, index: number) {
 }
 
 export const clearBag = () => update(() => ({ bag: [] }));
-export const addCodes = (codes: OwnedCode[]) => update((s) => ({ codes: [...codes, ...s.codes] }));
+
+export function saveOrder(ref: OrderRef) {
+  update((s) => ({ orders: [ref, ...s.orders.filter((o) => o.id !== ref.id)] }));
+}
+
+/** Record an order's latest state; once paid, its codes join the wallet (once). */
+export function syncOrder(order: Order) {
+  update((s) => {
+    const orders = s.orders.map((o) => (o.id === order.id ? { ...o, status: order.status } : o));
+    if (order.status !== "paid") return { orders };
+    const known = new Set(s.codes.map((c) => c.id));
+    const fresh: OwnedCode[] = order.items.flatMap((item) =>
+      item.codes
+        .filter((c) => !known.has(String(c.id)))
+        .map((c) => ({
+          id: String(c.id),
+          code: c.code,
+          orderId: order.id,
+          purchasedAt: order.paidAt ?? order.createdAt,
+          expiresAt: c.expiresAt,
+          status: "active" as const,
+          dealSlug: item.dealSlug,
+          merchant: item.merchant,
+          title: item.title,
+          hue: item.hue,
+          label: item.label,
+          priceMinor: item.unitPriceMinor,
+        })),
+    );
+    return { orders, codes: fresh.length ? [...fresh, ...s.codes] : s.codes };
+  });
+}
 export const setCodeStatus = (id: string, status: OwnedCode["status"]) =>
   update((s) => ({ codes: s.codes.map((c) => (c.id === id ? { ...c, status } : c)) }));
 

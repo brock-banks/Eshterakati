@@ -7,6 +7,7 @@ import { MerchantTile } from "./MerchantTile";
 export function DealCard({ deal }: { deal: Deal }) {
   const o = cheapest(deal);
   const several = deal.options.length > 1;
+  const pct = bestPercent(deal);
   return (
     <Link className="deal-card" href={`/deals/${deal.slug}`}>
       <MerchantTile merchant={deal.merchant} hue={deal.hue} />
@@ -16,20 +17,25 @@ export function DealCard({ deal }: { deal: Deal }) {
         <span className="price-row">
           <span className="price">
             {several && <span className="from">From </span>}
-            {money(o.priceCents)}
+            {money(o.priceMinor)}
           </span>
-          <s className="was">
-            <span className="visually-hidden">Face value </span>
-            {money(o.faceValueCents)}
-          </s>
+          {o.compareAtMinor && (
+            <s className="was">
+              <span className="visually-hidden">Was </span>
+              {money(o.compareAtMinor)}
+            </s>
+          )}
         </span>
-        <span className="meta-row">
-          <span className="badge badge-save">
-            Save {several && "up to "}
-            {bestPercent(deal)}%
+        {(pct !== null || deal.endsAt) && (
+          <span className="meta-row">
+            {pct !== null && (
+              <span className="badge badge-save">
+                Sale · {several && "up to "}−{pct}%
+              </span>
+            )}
+            {deal.endsAt && <EndsBadge endsAt={deal.endsAt} />}
           </span>
-          {deal.endsAt && <EndsBadge endsAt={deal.endsAt} />}
-        </span>
+        )}
       </span>
     </Link>
   );

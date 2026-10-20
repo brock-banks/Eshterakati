@@ -1,6 +1,6 @@
 import { cacheLife } from "next/cache";
 import { fixtureCatalog } from "./fixtures";
-import type { Category, Deal, DealOption } from "./types";
+import type { Category, Deal, DealOption, PaymentMethod } from "./types";
 
 /**
  * Server-side catalogue access. Reads from the Laravel API when API_URL is set
@@ -9,7 +9,7 @@ import type { Category, Deal, DealOption } from "./types";
 export const API_URL = process.env.API_URL?.replace(/\/$/, "");
 
 type ApiCategory = { slug: string; name: string; icon: string; hue: number; blurb: string; deals_count?: number };
-type ApiOption = { id: number; label: string; face_value_cents: number; price_cents: number; discount_percent: number; in_stock?: boolean };
+type ApiOption = { id: number; label: string; price_minor: number; compare_at_minor: number | null; discount_percent: number | null; in_stock?: boolean };
 type ApiDeal = {
   slug: string; category: string; merchant: string; title: string; blurb: string; hue: number; region: string;
   rating: number; reviews_count: number; sold_count: number; is_featured: boolean; ends_at: string | null; options: ApiOption[];
@@ -18,8 +18,8 @@ type ApiDeal = {
 const toOption = (o: ApiOption): DealOption => ({
   id: o.id,
   label: o.label,
-  faceValueCents: o.face_value_cents,
-  priceCents: o.price_cents,
+  priceMinor: o.price_minor,
+  compareAtMinor: o.compare_at_minor,
   discountPercent: o.discount_percent,
   inStock: o.in_stock,
 });
@@ -69,4 +69,12 @@ export async function getDeal(slug: string): Promise<Deal | null> {
   if (!API_URL) return fixtureCatalog(Date.now()).deals.find((d) => d.slug === slug) ?? null;
   const deal = await request<ApiDeal>(`/deals/${encodeURIComponent(slug)}`);
   return deal && toDeal(deal);
+}
+
+/** Accounts customers can transfer to. Empty without the API: checkout needs the backend. */
+export async function getPaymentMethods(): Promise<PaymentMethod[]> {
+  "use cache";
+  cacheLife("minutes");
+  if (!API_URL) return [];
+  return (await request<PaymentMethod[]>("/payment-methods")) ?? [];
 }

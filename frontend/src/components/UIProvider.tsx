@@ -1,21 +1,19 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useStore } from "@/lib/store";
-import type { BagLine, OwnedCode } from "@/lib/types";
-import { BagView, CheckoutView, DoneView } from "./CheckoutSheet";
+import type { BagLine, PaymentMethod } from "@/lib/types";
+import { BagView, CheckoutView } from "./CheckoutSheet";
 import { Icon } from "./Icon";
 
-export type SheetView =
-  | { step: "bag" }
-  | { step: "checkout"; from: "bag" | "express"; items: BagLine[] }
-  | { step: "done"; email: string; codes: OwnedCode[] };
+export type SheetView = { step: "bag" } | { step: "checkout"; from: "bag" | "express"; items: BagLine[] };
 
 type ToastAction = { label: string; run: () => void };
 type Toast = { id: number; message: string; action?: ToastAction };
 
 type UI = {
+  paymentMethods: PaymentMethod[];
   toast: (message: string, action?: ToastAction) => void;
   openSheet: (view: SheetView) => void;
   showView: (view: SheetView) => void;
@@ -33,7 +31,7 @@ export function useUI() {
 
 const SHEET_MS = 320;
 
-export function UIProvider({ children }: { children: ReactNode }) {
+export function UIProvider({ children, paymentMethods }: { children: ReactNode; paymentMethods: PaymentMethod[] }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const busyRef = useRef(false);
@@ -74,13 +72,18 @@ export function UIProvider({ children }: { children: ReactNode }) {
     busyRef.current = busy;
   }, []);
 
-  const ui = useMemo<UI>(() => ({ toast, openSheet, showView: setView, closeSheet, setBusy }), [toast, openSheet, closeSheet, setBusy]);
+  const ui = useMemo<UI>(
+    () => ({ paymentMethods, toast, openSheet, showView: setView, closeSheet, setBusy }),
+    [paymentMethods, toast, openSheet, closeSheet, setBusy],
+  );
   const sheetOpen = view !== null;
 
   return (
     <UIContext.Provider value={ui}>
       <ThemeSync />
-      <RouteFocus />
+      <Suspense fallback={null}>
+        <RouteFocus />
+      </Suspense>
       {children}
       <dialog
         ref={dialogRef}
@@ -97,7 +100,6 @@ export function UIProvider({ children }: { children: ReactNode }) {
         <div className="sheet-panel">
           {view?.step === "bag" && <BagView />}
           {view?.step === "checkout" && <CheckoutView key={view.items.map((i) => i.optionId).join()} view={view} />}
-          {view?.step === "done" && <DoneView view={view} />}
         </div>
         {/* Toasts must render inside the modal while it is open: the top layer covers everything else. */}
         <ToastRegion toast={sheetOpen ? toastState : null} onDismiss={() => setToast(null)} />

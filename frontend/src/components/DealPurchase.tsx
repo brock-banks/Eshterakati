@@ -39,7 +39,7 @@ export function DealPurchase({ deal }: { deal: Deal }) {
               <span className="option-body">
                 <span className="option-label">{o.label}</span>
                 <span className="option-price">
-                  {o.inStock === false ? "Sold out" : `${money(o.priceCents)} · −${o.discountPercent}%`}
+                  {o.inStock === false ? "Sold out" : `${money(o.priceMinor)}${o.discountPercent ? ` · −${o.discountPercent}%` : ""}`}
                 </span>
                 <span className="option-check">
                   <Icon name="check" />
@@ -51,12 +51,16 @@ export function DealPurchase({ deal }: { deal: Deal }) {
       </fieldset>
 
       <div className="price-block" aria-live="polite">
-        <span className="price-lg">{money(option.priceCents)}</span>
-        <s className="was">
-          <span className="visually-hidden">Face value </span>
-          {money(option.faceValueCents)}
-        </s>
-        <span className="badge badge-save">You save {money(option.faceValueCents - option.priceCents)}</span>
+        <span className="price-lg">{money(option.priceMinor)}</span>
+        {option.compareAtMinor && (
+          <>
+            <s className="was">
+              <span className="visually-hidden">Was </span>
+              {money(option.compareAtMinor)}
+            </s>
+            <span className="badge badge-save">You save {money(option.compareAtMinor - option.priceMinor)}</span>
+          </>
+        )}
       </div>
 
       <div className="cta-row desktop-only">
@@ -71,9 +75,10 @@ export function DealPurchase({ deal }: { deal: Deal }) {
 
       <div className="buy-bar mobile-only">
         <div className="buy-bar-price">
-          <span className="price">{money(option.priceCents)}</span>
+          <span className="price">{money(option.priceMinor)}</span>
           <span className="secondary">
-            {option.label} · save {option.discountPercent}%
+            {option.label}
+            {option.discountPercent && ` · save ${option.discountPercent}%`}
           </span>
         </div>
         <button className="btn btn-tinted" type="button" aria-label="Add to Bag" onClick={add} disabled={soldOut}>

@@ -6,13 +6,15 @@ import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/Icon";
 import { MerchantTile } from "@/components/MerchantTile";
 import { Today } from "@/components/Today";
-import { getCategories, getDeals } from "@/lib/api";
+import { getCategories, getDeals, getPaymentMethods } from "@/lib/api";
 import { bestPercent, cheapest, money } from "@/lib/format";
 
 export default async function DiscoverPage() {
-  const [deals, categories] = await Promise.all([getDeals(), getCategories()]);
+  const [deals, categories, methods] = await Promise.all([getDeals(), getCategories(), getPaymentMethods()]);
+  const paymentNames = methods.length ? new Intl.ListFormat("en", { type: "disjunction" }).format(methods.map((m) => m.name)) : "your bank app";
   const featured = deals.find((d) => d.isFeatured) ?? deals[0];
   const fo = featured && cheapest(featured);
+  const featuredPct = featured && bestPercent(featured);
   const trending = deals.slice(0, 6);
   const ending = deals
     .filter((d) => d.endsAt)
@@ -34,18 +36,20 @@ export default async function DiscoverPage() {
             <span className="tile tile-xl">{featured.merchant[0]}</span>
           </span>
           <span className="hero-copy">
-            <span className="hero-eyebrow">Today’s pick · Save up to {bestPercent(featured)}%</span>
+            <span className="hero-eyebrow">Today’s pick{featuredPct !== null && ` · Save up to ${featuredPct}%`}</span>
             <span className="hero-title" role="heading" aria-level={2}>
               {featured.merchant} {featured.title}
             </span>
             <span className="hero-sub">{featured.blurb}</span>
             <span className="hero-cta">
               <span className="hero-price">
-                From {money(fo.priceCents)}
-                <s>
-                  <span className="visually-hidden">Face value </span>
-                  {money(fo.faceValueCents)}
-                </s>
+                From {money(fo.priceMinor)}
+                {fo.compareAtMinor && (
+                  <s>
+                    <span className="visually-hidden">Was </span>
+                    {money(fo.compareAtMinor)}
+                  </s>
+                )}
               </span>
               <span className="btn btn-on-color">View Deal</span>
             </span>
@@ -95,7 +99,8 @@ export default async function DiscoverPage() {
                       {d.merchant} {d.title}
                     </span>
                     <span className="list-row-sub">
-                      From {money(cheapest(d).priceCents)} · Save up to {bestPercent(d)}%
+                      From {money(cheapest(d).priceMinor)}
+                      {bestPercent(d) !== null && ` · Sale up to −${bestPercent(d)}%`}
                     </span>
                   </span>
                   <EndsBadge endsAt={d.endsAt!} />
@@ -115,17 +120,17 @@ export default async function DiscoverPage() {
         </div>
         <ul className="trust" role="list">
           <li className="trust-item">
-            <span className="trust-icon"><Icon name="bolt" /></span>
+            <span className="trust-icon"><Icon name="wallet" /></span>
             <div>
-              <h3 className="headline">Instant delivery</h3>
-              <p>Your code appears the moment you pay, and we email a copy.</p>
+              <h3 className="headline">Pay from your bank app</h3>
+              <p>Transfer with {paymentNames}, then upload the receipt. Codes are held for you while you pay.</p>
             </div>
           </li>
           <li className="trust-item">
-            <span className="trust-icon"><Icon name="shield" /></span>
+            <span className="trust-icon"><Icon name="bolt" /></span>
             <div>
-              <h3 className="headline">Verified codes</h3>
-              <p>Every code is checked with the merchant before it’s listed.</p>
+              <h3 className="headline">Codes within minutes</h3>
+              <p>As soon as we confirm your transfer, your codes appear in My Codes — no account needed.</p>
             </div>
           </li>
           <li className="trust-item">

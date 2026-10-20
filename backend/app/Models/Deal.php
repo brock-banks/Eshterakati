@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\CouponCodeStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
     'slug', 'category_id', 'merchant', 'title', 'blurb', 'hue', 'region',
@@ -43,6 +45,14 @@ class Deal extends Model
     public function options(): HasMany
     {
         return $this->hasMany(DealOption::class)->orderBy('sort_order');
+    }
+
+    /**
+     * @return HasManyThrough<CouponCode, DealOption, $this>
+     */
+    public function availableCodes(): HasManyThrough
+    {
+        return $this->hasManyThrough(CouponCode::class, DealOption::class)->where('coupon_codes.status', CouponCodeStatus::Available);
     }
 
     /**

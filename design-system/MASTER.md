@@ -37,7 +37,7 @@ Numbers that change (prices, countdowns, quantities) use `font-variant-numeric: 
 | `--label-3` | `#8e8e93` | `#7c7c80` | Placeholders and decorative only |
 | `--tint` | `#0071e3` | `#0071e3` | Filled buttons (white text 4.7:1) |
 | `--tint-text` | `#0066cc` | `#2997ff` | Links and tinted text (5.6:1). systemBlue `#007AFF` fails AA for text. |
-| `--green` / `--green-bg` | `#1f7a35` / 16% | `#30d158` / 18% | Savings — always with text ("Save 18%"), never colour alone |
+| `--green` / `--green-bg` | `#1f7a35` / 16% | `#30d158` / 18% | Sale badges and discounts — always with text ("Sale · −13%"), never colour alone |
 | `--orange` / `--orange-bg` | `#b03000` / 16% | `#ff9f0a` / 18% | Countdowns |
 | `--red` | `#d70015` | `#ff453a` | Errors, destructive actions, the badge |
 | `--separator` | 60,60,67 @ 20% | 84,84,88 @ 60% | Hairlines (0.5px on retina) |
@@ -78,6 +78,12 @@ Theme: `prefers-color-scheme` by default. `html[data-theme="light"|"dark"]` forc
 | Pass | `.pass` | Wallet‑style: hue header, perforation, actions. Used passes are desaturated. |
 | Sheet | `UIProvider.tsx` `<dialog class="sheet">` | Bottom sheet with a grabber on phones, centred card on ≥768. Esc, backdrop and × close it. Locked while processing. Focus returns to the trigger. |
 | Toast | `.toast` | Bottom, above the tab bar. At the top inside sheets. 3s, or 5s with an action (usually **Undo**). `aria-live="polite"`. |
+| Order progress | `.progress` (OrderView) | 4 steps. Done is green with a check, current is tint with a ring and `aria-current="step"`, and the step state is also in hidden text. |
+| Copy row | `CopyRow` (OrderView) | Label, large value (LTR, tabular), hint, and a tinted Copy button. Amounts copy as digits only, so they paste into bank apps. |
+| Receipt uploader | `.receipt-drop` / `.receipt-preview` | A dashed drop target (whole area is the label), then a preview with **Change**. `accept="image/*"` opens the camera or gallery. |
+| Callout | `.callout-warning` | Orange tint, icon and text. Used for rejected receipts. |
+| Deadline banner | `.deadline` | Tint banner: "held until 5:57 PM · 2h 14m left". |
+| Status card | `.status-card` | Waiting, expired and similar states: icon, title, one paragraph, one action. |
 | Empty state | `EmptyState.tsx` | Icon in a circle, title, one sentence, one action. |
 | Skeleton | `.skeleton` | Shimmer placeholder the size of the real content. |
 

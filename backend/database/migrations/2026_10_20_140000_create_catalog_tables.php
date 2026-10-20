@@ -42,13 +42,14 @@ return new class extends Migration
             $table->index(['is_active', 'category_id']);
         });
 
-        // Money is stored in minor units (cents) to avoid float rounding.
+        // Money is stored in minor units of the store currency (config shop.currency).
+        // The label carries the card's own denomination, e.g. "$25".
         Schema::create('deal_options', function (Blueprint $table) {
             $table->id();
             $table->foreignId('deal_id')->constrained()->cascadeOnDelete();
             $table->string('label');
-            $table->unsignedInteger('face_value_cents');
-            $table->unsignedInteger('price_cents');
+            $table->unsignedBigInteger('price_minor');
+            $table->unsignedBigInteger('compare_at_minor')->nullable();
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->timestamps();
         });
@@ -56,13 +57,21 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->string('email');
+            $table->string('reference', 16)->unique();
+            $table->text('access_token');
+            $table->string('phone', 20);
+            $table->string('email')->nullable();
             $table->string('status');
             $table->string('currency', 3);
-            $table->unsignedInteger('face_value_cents');
-            $table->unsignedInteger('total_cents');
+            $table->unsignedBigInteger('total_minor');
+            $table->string('payment_method', 32);
+            $table->timestamp('expires_at')->nullable();
+            $table->string('rejection_reason', 500)->nullable();
             $table->timestamp('paid_at')->nullable();
+            $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+
+            $table->index(['status', 'expires_at']);
         });
 
         Schema::create('order_items', function (Blueprint $table) {
@@ -70,8 +79,7 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->foreignId('deal_option_id')->constrained()->restrictOnDelete();
             $table->unsignedSmallInteger('quantity');
-            $table->unsignedInteger('unit_price_cents');
-            $table->unsignedInteger('unit_face_value_cents');
+            $table->unsignedBigInteger('unit_price_minor');
             $table->timestamps();
         });
 
@@ -88,6 +96,19 @@ return new class extends Migration
 
             $table->index(['deal_option_id', 'status']);
         });
+
+        Schema::create('payment_receipts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('order_id')->constrained()->cascadeOnDelete();
+            $table->string('disk');
+            $table->string('path');
+            $table->string('mime', 64);
+            $table->unsignedInteger('size');
+            $table->char('sha256', 64)->index();
+            $table->string('transaction_reference', 64)->index();
+            $table->string('status');
+            $table->timestamps();
+        });
     }
 
     /**
@@ -95,6 +116,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('payment_receipts');
         Schema::dropIfExists('coupon_codes');
         Schema::dropIfExists('order_items');
         Schema::dropIfExists('orders');

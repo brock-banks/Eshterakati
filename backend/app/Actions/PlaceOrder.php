@@ -5,33 +5,32 @@ namespace App\Actions;
 use App\Enums\CouponCodeStatus;
 use App\Enums\OrderStatus;
 use App\Models\CouponCode;
-use App\Models\Deal;
 use App\Models\DealOption;
 use App\Models\Order;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PlaceOrder
 {
+    private const REFERENCE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
     /**
-     * Create a paid order and assign codes from inventory.
-     *
-     * Payment capture is stubbed: the order is marked paid immediately.
-     * Integrate a payment provider before launch (see docs/UX-SPEC.md, "Open decisions").
+     * Create an order awaiting payment and reserve its codes, so stock is held
+     * while the customer makes the transfer.
      *
      * @param  list<array{option_id: int, quantity: int}>  $items
      *
      * @throws ValidationException when an option is unavailable or out of stock
      */
-    public function handle(string $email, array $items): Order
+    public function handle(string $phone, ?string $email, string $paymentMethod, array $items): Order
     {
-        // Merge repeated lines for the same option so stock is checked once.
         $quantities = collect($items)
             ->groupBy('option_id')
             ->map(fn (Collection $lines) => (int) $lines->sum('quantity'));
 
-        return DB::transaction(function () use ($email, $quantities) {
+        return DB::transaction(function () use ($phone, $email, $paymentMethod, $quantities) {
             $options = DealOption::query()
                 ->whereIn('id', $quantities->keys())
                 ->whereHas('deal', fn ($q) => $q->listed())
@@ -75,35 +74,46 @@ class PlaceOrder
             }
 
             $order = Order::create([
+                'reference' => $this->uniqueReference(),
+                'access_token' => Str::random(40),
+                'phone' => $phone,
                 'email' => $email,
-                'status' => OrderStatus::Paid,
+                'status' => OrderStatus::AwaitingPayment,
                 'currency' => config('shop.currency'),
-                'face_value_cents' => $quantities->sum(fn ($qty, $id) => $options[$id]->face_value_cents * $qty),
-                'total_cents' => $quantities->sum(fn ($qty, $id) => $options[$id]->price_cents * $qty),
-                'paid_at' => now(),
+                'total_minor' => $quantities->sum(fn ($qty, $id) => $options[$id]->price_minor * $qty),
+                'payment_method' => $paymentMethod,
+                'expires_at' => now()->addMinutes(config('shop.payment_window_minutes')),
             ]);
 
             foreach ($quantities as $optionId => $quantity) {
-                $option = $options[$optionId];
-
                 $item = $order->items()->create([
                     'deal_option_id' => $optionId,
                     'quantity' => $quantity,
-                    'unit_price_cents' => $option->price_cents,
-                    'unit_face_value_cents' => $option->face_value_cents,
+                    'unit_price_minor' => $options[$optionId]->price_minor,
                 ]);
 
                 CouponCode::whereKey($reserved[$optionId]->modelKeys())->update([
-                    'status' => CouponCodeStatus::Sold,
+                    'status' => CouponCodeStatus::Reserved,
                     'order_item_id' => $item->id,
-                    'sold_at' => now(),
-                    'expires_at' => now()->addMonths(config('shop.code_validity_months')),
                 ]);
-
-                Deal::whereKey($option->deal_id)->increment('sold_count', $quantity);
             }
 
-            return $order->load('items.option.deal', 'items.codes');
+            return $order->load('items.option.deal');
         });
+    }
+
+    /**
+     * Short code the customer writes in the transfer note, e.g. "ESH-7K4QP".
+     */
+    private function uniqueReference(): string
+    {
+        do {
+            $suffix = collect(range(1, 5))
+                ->map(fn () => self::REFERENCE_ALPHABET[random_int(0, strlen(self::REFERENCE_ALPHABET) - 1)])
+                ->implode('');
+            $reference = "ESH-{$suffix}";
+        } while (Order::where('reference', $reference)->exists());
+
+        return $reference;
     }
 }

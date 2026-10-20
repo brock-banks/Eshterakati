@@ -16,11 +16,12 @@ npm run lint && npx tsc --noEmit && npm run build
 | Path | Role |
 | --- | --- |
 | `src/app/**/page.tsx` | Server Components. Catalogue data comes from `src/lib/api.ts` (`'use cache'`, 1‑minute lifetime). |
-| `src/app/actions.ts` | `placeOrder` Server Action → `POST /api/v1/orders` on Laravel. Maps 422/429 into messages people can act on. |
-| `src/lib/api.ts` | Laravel client. With no `API_URL`, serves `src/lib/fixtures.ts` (mirrors the Laravel seeder). |
-| `src/lib/store.ts` | Guest state (bag, purchased codes, preferences) in `localStorage`, read through `useSyncExternalStore`. |
+| `src/app/actions.ts` | Server Actions: `createOrder`, `getOrder`, `submitReceipt` → Laravel. They map 422/404/429 into messages people can act on. |
+| `src/components/OrderView.tsx` | `/orders/[id]`: transfer details, receipt upload (resized in the browser), review state, codes. Polls every 15s. |
+| `src/lib/api.ts` | Laravel client. With no `API_URL`, serves `src/lib/fixtures.ts` (mirrors the Laravel seeder) for browsing. Checkout needs the API. |
+| `src/lib/store.ts` | Guest state (bag, orders with their access tokens, purchased codes, preferences) in `localStorage`, read through `useSyncExternalStore`. |
 | `src/components/UIProvider.tsx` | Sheet (`<dialog>`), toasts, theme/RTL sync and focus management on navigation. |
 | `src/app/globals.css` | Design tokens and components — semantic tokens only, logical properties for RTL. |
 
 Notes for this Next.js version: `params` is a Promise, Cache Components is on (runtime
-reads such as `useSearchParams` sit inside `<Suspense>`), and `error.tsx` receives `retry`.
+reads such as `useSearchParams`, or `usePathname` on `/orders/[id]`, sit inside `<Suspense>`), and `error.tsx` receives `retry`.

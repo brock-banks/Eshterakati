@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['deal_id', 'label', 'face_value_cents', 'price_cents', 'sort_order'])]
+#[Fillable(['deal_id', 'label', 'price_minor', 'compare_at_minor', 'sort_order'])]
 class DealOption extends Model
 {
     /**
@@ -35,8 +35,15 @@ class DealOption extends Model
         return $this->codes()->where('status', CouponCodeStatus::Available);
     }
 
-    public function discountPercent(): int
+    /**
+     * Percentage off the compare-at price, when the option is on sale.
+     */
+    public function discountPercent(): ?int
     {
-        return (int) round((1 - $this->price_cents / $this->face_value_cents) * 100);
+        if (! $this->compare_at_minor || $this->compare_at_minor <= $this->price_minor) {
+            return null;
+        }
+
+        return (int) round((1 - $this->price_minor / $this->compare_at_minor) * 100);
     }
 }
