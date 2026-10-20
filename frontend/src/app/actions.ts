@@ -116,14 +116,17 @@ const toOrder = (o: ApiOrder): Order => ({
 });
 
 /**
- * The shopper's IP for the API's rate limits (Laravel trusts it only from this server; see
- * TRUSTED_PROXIES). Uses the right-most X-Forwarded-For entry: the address the proxy in front of
- * Next saw. In production, that proxy must set the header, since clients can send their own.
+ * The shopper's IP for the API's rate limits. Uses the right-most X-Forwarded-For entry: the
+ * address the proxy in front of Next saw (clients can send their own, so never the first one).
+ * Locally Laravel trusts X-Forwarded-For from this server (TRUSTED_PROXIES). Hosted, the API sits
+ * behind its own proxy, so the shopper is named in X-Shopper-IP, vouched for by STOREFRONT_KEY.
  */
 async function forwarded(): Promise<Record<string, string>> {
   const value = (await headers()).get("x-forwarded-for") ?? "";
   const ip = value.split(",").map((part) => part.trim()).filter(Boolean).at(-1);
-  return ip ? { "X-Forwarded-For": ip } : {};
+  if (!ip) return {};
+  const key = process.env.STOREFRONT_KEY;
+  return key ? { "X-Forwarded-For": ip, "X-Shopper-IP": ip, "X-Storefront-Key": key } : { "X-Forwarded-For": ip };
 }
 
 const langOf = (value: unknown): Locale => (typeof value === "string" && hasLocale(value) ? value : "ar");

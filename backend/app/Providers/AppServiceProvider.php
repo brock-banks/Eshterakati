@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\ShopperIp;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -25,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
         // Separate budgets per action and shopper, so status polling never eats into the
         // allowance for placing orders, and one busy shopper doesn't affect another.
         foreach (config('shop.rate_limits') as $name => $perMinute) {
-            RateLimiter::for($name, fn (Request $request) => Limit::perMinute($perMinute)->by("{$name}:{$request->ip()}"));
+            RateLimiter::for($name, fn (Request $request) => Limit::perMinute($perMinute)->by("{$name}:".ShopperIp::of($request)));
         }
     }
 }

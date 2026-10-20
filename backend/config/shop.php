@@ -60,6 +60,12 @@ return [
     // Receives an email for every receipt that needs checking.
     'admin_email' => env('SHOP_ADMIN_EMAIL'),
 
+    // First /admin login, created on deploy by `php artisan shop:admin` (an existing account keeps its password).
+    'admin_password' => env('SHOP_ADMIN_PASSWORD'),
+
+    // Shared with the storefront (STOREFRONT_KEY there) so the API can trust the shopper IP it forwards.
+    'storefront_key' => env('SHOP_STOREFRONT_KEY'),
+
     // Where customers' order links point (the Next.js storefront).
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
 
