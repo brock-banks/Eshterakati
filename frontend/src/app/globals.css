@@ -1152,3 +1152,17 @@ input[type="file"]:focus-visible + .receipt-preview .btn { outline: 3px solid va
 html[lang="ar"] *:not(.code-value):not(.copy-value) { letter-spacing: 0; }
 html[lang="ar"] :is(.large-title, .hero-title, .title1, .section-title, .price-lg, .pass-value, .deal-art-name) { line-height: 1.35; }
 html[lang="ar"] .eyebrow, html[lang="ar"] .hero-eyebrow, html[lang="ar"] .list-header { text-transform: none; }
+
+/* Report a problem */
+.plain-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.plain-fieldset legend { padding: 0; }
+.text-area { min-height: 88px; padding-block: var(--s-3); resize: vertical; line-height: 1.4; }
+select.text-input { appearance: auto; }
+.receipt-drop-compact { padding: var(--s-5) var(--s-4); }
+.callout-info { background: var(--tint-bg); color: var(--label); }
+.callout-info .icon { color: var(--tint-text); }
+.callout-success { background: var(--green-bg); color: var(--label); }
+.callout-success .icon { color: var(--green); }
+.pass .callout { margin: 0; }
+.pass-status { display: flex; align-items: center; gap: var(--s-2); color: var(--label-2); font: var(--t-subhead); }
+.sheet .receipt-preview img { max-height: 200px; }

@@ -23,7 +23,7 @@ const totals = (lines: BagLine[]) =>
     { price: 0, was: 0, count: 0 },
   );
 
-function SheetNav({ title, leading, trailing }: { title: string; leading?: ReactNode; trailing?: ReactNode }) {
+export function SheetNav({ title, leading, trailing }: { title: string; leading?: ReactNode; trailing?: ReactNode }) {
   const { closeSheet } = useUI();
   const { dict } = useI18n();
   const closeRef = useRef<HTMLButtonElement>(null);

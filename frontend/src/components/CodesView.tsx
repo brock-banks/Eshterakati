@@ -21,8 +21,10 @@ export function CodesView() {
   const initial = useSearchParams().get("show");
   const [show, setShow] = useState<Show>(initial === "used" ? "used" : "active");
   const codes = useStore((s) => s.codes);
-  const counts = { active: codes.filter((c) => c.status === "active").length, used: codes.filter((c) => c.status === "used").length };
-  const list = codes.filter((c) => c.status === show);
+  // Replaced or refunded codes are retired: they move to Used with their outcome.
+  const isActive = (c: OwnedCode) => c.status === "active" && !c.disputed;
+  const counts = { active: codes.filter(isActive).length, used: codes.filter((c) => !isActive(c)).length };
+  const list = codes.filter((c) => (show === "active" ? isActive(c) : !isActive(c)));
 
   function change(next: Show) {
     setShow(next);
@@ -73,10 +75,48 @@ export function CodesView() {
   );
 }
 
+function ReportStatus({ code: c }: { code: OwnedCode }) {
+  const { dict: d, t, fmt } = useI18n();
+  const r = c.report;
+  if (!r) return null;
+  if (r.status === "open") {
+    return (
+      <p className="callout callout-info" role="status">
+        <Icon name="clock" />
+        <span>{t(d.report.open, { date: fmt.shortDate(r.createdAt), time: r.responseTime })}</span>
+      </p>
+    );
+  }
+  if (r.status === "replaced" || r.status === "refunded") {
+    return (
+      <div className="callout callout-success">
+        <Icon name="check-circle" />
+        <div>
+          <p>
+            {r.status === "replaced"
+              ? d.report.replaced
+              : t(d.report.refunded, { amount: fmt.money(r.refundAmountMinor ?? 0), reference: r.refundReference ?? "" })}
+          </p>
+          {r.message && <p className="secondary">{r.message}</p>}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="callout callout-warning">
+      <Icon name="alert" />
+      <div>
+        <p className="headline">{d.report.declined}</p>
+        {r.message && <p>{r.message}</p>}
+      </div>
+    </div>
+  );
+}
+
 function Pass({ code: c }: { code: OwnedCode }) {
-  const { toast } = useUI();
+  const { toast, openSheet } = useUI();
   const { dict: d, t, fmt, href } = useI18n();
-  const used = c.status === "used";
+  const used = c.status === "used" || Boolean(c.disputed);
   const move = (status: OwnedCode["status"]) => {
     setCodeStatus(c.id, status);
     toast(status === "used" ? d.codes.movedUsed : d.codes.movedActive, { label: d.common.undo, run: () => setCodeStatus(c.id, c.status) });
@@ -95,36 +135,45 @@ function Pass({ code: c }: { code: OwnedCode }) {
         <span className="pass-value">{c.label}</span>
       </div>
       <div className="pass-body">
-        <CodeField code={c.code} merchant={c.merchant} />
+        {/* A retired code must not be redeemed, so it isn't shown. */}
+        {!c.disputed && <CodeField code={c.code} merchant={c.merchant} />}
+        <ReportStatus code={c} />
         <p className="pass-meta">
-          {used && d.codes.markedUsed}
+          {c.disputed && <span className="badge badge-neutral">{c.report?.status === "refunded" ? d.report.refundedBadge : d.report.replacedBadge}</span>}{" "}
+          {c.status === "used" && !c.disputed && d.codes.markedUsed}
           {t(d.codes.bought, { date: fmt.shortDate(c.purchasedAt) })}
           {c.expiresAt && t(d.codes.validUntil, { date: fmt.shortDate(c.expiresAt) })}
         </p>
       </div>
-      <div className="pass-perf" aria-hidden="true" />
-      <div className="pass-body">
-        <div className="pass-actions">
-          {used ? (
-            <button className="btn btn-plain btn-sm" type="button" onClick={() => move("active")}>
-              {d.codes.moveBack}
-            </button>
-          ) : (
-            <button className="btn btn-plain btn-sm" type="button" onClick={() => move("used")}>
-              <Icon name="check-circle" />
-              {d.codes.markUsed}
-            </button>
-          )}
-          <Link className="btn btn-plain btn-sm" href={href(`/deals/${c.dealSlug}#redeem-h`)}>
-            <Icon name="info" />
-            {d.codes.howToRedeem}
-          </Link>
-          <button className="btn btn-plain btn-sm" type="button" onClick={() => toast(d.codes.reportSoon)}>
-            <Icon name="flag" />
-            {d.codes.report}
-          </button>
-        </div>
-      </div>
+      {!c.disputed && (
+        <>
+          <div className="pass-perf" aria-hidden="true" />
+          <div className="pass-body">
+            <div className="pass-actions">
+              {used ? (
+                <button className="btn btn-plain btn-sm" type="button" onClick={() => move("active")}>
+                  {d.codes.moveBack}
+                </button>
+              ) : (
+                <button className="btn btn-plain btn-sm" type="button" onClick={() => move("used")}>
+                  <Icon name="check-circle" />
+                  {d.codes.markUsed}
+                </button>
+              )}
+              <Link className="btn btn-plain btn-sm" href={href(`/deals/${c.dealSlug}#redeem-h`)}>
+                <Icon name="info" />
+                {d.codes.howToRedeem}
+              </Link>
+              {!c.report && (
+                <button className="btn btn-plain btn-sm" type="button" onClick={() => openSheet({ step: "report", code: c })}>
+                  <Icon name="flag" />
+                  {d.codes.report}
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </article>
   );
 }
@@ -136,17 +185,22 @@ function OrdersInProgress() {
   const { toast } = useUI();
   const { dict: d, t, fmt, href, lang } = useI18n();
   const orders = useStore((s) => s.orders);
+  const codes = useStore((s) => s.codes);
   const pending = orders.filter((o) => PENDING.includes(o.status));
-  const key = pending.map((o) => o.id).join();
+  // Also follow orders with an open problem report, so its outcome shows up here.
+  const reported = new Set(codes.filter((c) => c.report?.status === "open").map((c) => c.orderId));
+  const key = [...pending.map((o) => o.id), ...reported].sort().join();
 
   useEffect(() => {
     if (!key) return;
     const refresh = async () => {
-      for (const ref of readState().orders.filter((o) => PENDING.includes(o.status))) {
+      const state = readState();
+      const watching = new Set(state.codes.filter((c) => c.report?.status === "open").map((c) => c.orderId));
+      for (const ref of state.orders.filter((o) => PENDING.includes(o.status) || watching.has(o.id))) {
         const result = await getOrder(ref.id, ref.token, lang);
         if (!result.ok) continue;
         syncOrder(result.order);
-        if (result.order.status === "paid") toast(t(d.codes.ready, { reference: ref.reference }));
+        if (result.order.status === "paid" && PENDING.includes(ref.status)) toast(t(d.codes.ready, { reference: ref.reference }));
       }
     };
     void refresh();

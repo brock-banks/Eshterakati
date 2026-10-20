@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Actions\PlaceOrder;
+use App\Actions\ReportProblem;
 use App\Actions\SubmitReceipt;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Requests\StoreReceiptRequest;
+use App\Http\Requests\StoreReportRequest;
 use App\Http\Resources\OrderResource;
+use App\Models\CouponCode;
 use App\Models\Order;
 use App\Notifications\OrderPlaced;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +20,8 @@ use Throwable;
 
 class OrderController extends Controller
 {
+    private const WITH = ['items.option.deal', 'items.codes.report', 'latestReceipt'];
+
     public function store(StoreOrderRequest $request, PlaceOrder $placeOrder): JsonResponse
     {
         $order = $placeOrder->handle(
@@ -47,7 +52,7 @@ class OrderController extends Controller
         $this->authorizeToken($request, $order);
         $order->expireIfDue();
 
-        return new OrderResource($order->load('items.option.deal', 'items.codes', 'latestReceipt'));
+        return new OrderResource($order->load(self::WITH));
     }
 
     public function receipt(StoreReceiptRequest $request, Order $order, SubmitReceipt $submitReceipt): OrderResource
@@ -56,7 +61,19 @@ class OrderController extends Controller
 
         $order = $submitReceipt->handle($order, $request->file('receipt'), $request->validated('transaction_reference'));
 
-        return new OrderResource($order->load('items.option.deal', 'items.codes', 'latestReceipt'));
+        return new OrderResource($order->load(self::WITH));
+    }
+
+    /**
+     * Report that one of the order's codes doesn't work.
+     */
+    public function report(StoreReportRequest $request, Order $order, CouponCode $code, ReportProblem $reportProblem): OrderResource
+    {
+        $this->authorizeToken($request, $order);
+
+        $reportProblem->handle($order, $code, $request->validated(), $request->file('screenshot'));
+
+        return new OrderResource($order->load(self::WITH));
     }
 
     /**

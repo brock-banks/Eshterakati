@@ -83,6 +83,14 @@ class Order extends Model
     }
 
     /**
+     * @return HasMany<ProblemReport, $this>
+     */
+    public function problemReports(): HasMany
+    {
+        return $this->hasMany(ProblemReport::class);
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function reviewer(): BelongsTo

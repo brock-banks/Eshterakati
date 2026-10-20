@@ -18,6 +18,23 @@ return [
 
     'max_quantity_per_item' => 10,
 
+    // Requests per minute per shopper (by IP, forwarded by the storefront; see TRUSTED_PROXIES).
+    'rate_limits' => [
+        'place-order' => (int) env('SHOP_LIMIT_ORDERS', 10),
+        'upload-receipt' => (int) env('SHOP_LIMIT_RECEIPTS', 10),
+        'report-problem' => (int) env('SHOP_LIMIT_REPORTS', 5),
+        'order-status' => (int) env('SHOP_LIMIT_STATUS', 120),
+    ],
+
+    // Customers can report a code that doesn't work for this many days after purchase.
+    'report_window_days' => (int) env('SHOP_REPORT_WINDOW_DAYS', 30),
+
+    // Shown to customers after they report a problem, in each storefront language.
+    'report_response_time' => [
+        'en' => env('SHOP_REPORT_RESPONSE', 'usually within 1 business day'),
+        'ar' => env('SHOP_REPORT_RESPONSE_AR', 'عادةً خلال يوم عمل واحد'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Receipt payments

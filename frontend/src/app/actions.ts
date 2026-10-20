@@ -1,15 +1,18 @@
 "use server";
 
+import { headers } from "next/headers";
 import { getDictionary, hasLocale, type Locale } from "@/i18n";
 import { API_URL } from "@/lib/api";
-import type { Order } from "@/lib/types";
+import type { CodeReport, Order } from "@/lib/types";
 
 /**
  * Server Actions are public endpoints: everything is re-validated by Laravel.
  * These only forward requests and translate responses into messages people can act on.
  */
 
-type Field = "phone" | "email" | "paymentMethod" | "items" | "receipt" | "transactionReference";
+type Field =
+  | "phone" | "email" | "paymentMethod" | "items" | "receipt" | "transactionReference"
+  | "reason" | "details" | "screenshot" | "preference" | "refundMethod" | "refundAccountNumber" | "refundAccountName";
 export type ActionError = { ok: false; message: string; fields?: Partial<Record<Field, string>> };
 export type OrderResult = { ok: true; order: Order; token?: string } | ActionError;
 
@@ -40,7 +43,25 @@ type ApiOrder = {
     unit_price_minor: number;
     option: { id: number; label: string };
     deal: { slug: string; merchant: string; title: string; hue: number };
-    codes: { id: number; code: string; expires_at: string | null }[];
+    codes: {
+      id: number;
+      code: string;
+      expires_at: string | null;
+      status: "sold" | "disputed";
+      reportable_until: string | null;
+      report: {
+        status: CodeReport["status"];
+        reason: CodeReport["reason"];
+        preference: CodeReport["preference"];
+        created_at: string;
+        resolved_at: string | null;
+        message: string | null;
+        replacement_code_id: number | null;
+        refund_amount_minor: number | null;
+        refund_reference: string | null;
+        response_time: string;
+      } | null;
+    }[];
   }[];
 };
 
@@ -72,9 +93,38 @@ const toOrder = (o: ApiOrder): Order => ({
     merchant: i.deal.merchant,
     title: i.deal.title,
     hue: i.deal.hue,
-    codes: i.codes.map((c) => ({ id: c.id, code: c.code, expiresAt: c.expires_at })),
+    codes: i.codes.map((c) => ({
+      id: c.id,
+      code: c.code,
+      expiresAt: c.expires_at,
+      status: c.status,
+      reportableUntil: c.reportable_until,
+      report: c.report && {
+        status: c.report.status,
+        reason: c.report.reason,
+        preference: c.report.preference,
+        createdAt: c.report.created_at,
+        resolvedAt: c.report.resolved_at,
+        message: c.report.message,
+        replacementCodeId: c.report.replacement_code_id,
+        refundAmountMinor: c.report.refund_amount_minor,
+        refundReference: c.report.refund_reference,
+        responseTime: c.report.response_time,
+      },
+    })),
   })),
 });
+
+/**
+ * The shopper's IP for the API's rate limits (Laravel trusts it only from this server; see
+ * TRUSTED_PROXIES). Uses the right-most X-Forwarded-For entry: the address the proxy in front of
+ * Next saw. In production, that proxy must set the header, since clients can send their own.
+ */
+async function forwarded(): Promise<Record<string, string>> {
+  const value = (await headers()).get("x-forwarded-for") ?? "";
+  const ip = value.split(",").map((part) => part.trim()).filter(Boolean).at(-1);
+  return ip ? { "X-Forwarded-For": ip } : {};
+}
 
 const langOf = (value: unknown): Locale => (typeof value === "string" && hasLocale(value) ? value : "ar");
 const errors = (lang: Locale) => getDictionary(lang).errors;
@@ -86,6 +136,13 @@ const API_FIELDS: Record<string, Field> = {
   payment_method: "paymentMethod",
   receipt: "receipt",
   transaction_reference: "transactionReference",
+  reason: "reason",
+  details: "details",
+  screenshot: "screenshot",
+  preference: "preference",
+  refund_method: "refundMethod",
+  refund_account_number: "refundAccountNumber",
+  refund_account_name: "refundAccountName",
 };
 
 async function toError(res: Response, lang: Locale, fallback: string): Promise<ActionError> {
@@ -112,7 +169,7 @@ export async function createOrder(input: OrderInput): Promise<OrderResult> {
   try {
     res = await fetch(`${API_URL}/orders`, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json", "Accept-Language": lang },
+      headers: { Accept: "application/json", "Content-Type": "application/json", "Accept-Language": lang, ...(await forwarded()) },
       body: JSON.stringify({
         phone: String(input?.phone ?? ""),
         email: String(input?.email ?? ""),
@@ -136,7 +193,7 @@ export async function getOrder(id: string, token: string, langInput: Locale): Pr
   let res: Response;
   try {
     res = await fetch(`${API_URL}/orders/${id}`, {
-      headers: { Accept: "application/json", "X-Order-Token": String(token), "Accept-Language": lang },
+      headers: { Accept: "application/json", "X-Order-Token": String(token), "Accept-Language": lang, ...(await forwarded()) },
       cache: "no-store",
     });
   } catch {
@@ -167,7 +224,7 @@ export async function submitReceipt(form: FormData): Promise<OrderResult> {
   try {
     res = await fetch(`${API_URL}/orders/${id}/receipt`, {
       method: "POST",
-      headers: { Accept: "application/json", "X-Order-Token": token, "Accept-Language": lang },
+      headers: { Accept: "application/json", "X-Order-Token": token, "Accept-Language": lang, ...(await forwarded()) },
       body,
       cache: "no-store",
     });
@@ -175,5 +232,36 @@ export async function submitReceipt(form: FormData): Promise<OrderResult> {
     return fail(errors(lang).unreachable);
   }
   if (!res.ok) return toError(res, lang, errors(lang).uploadFailed);
+  return { ok: true, order: toOrder(((await res.json()) as { data: ApiOrder }).data) };
+}
+
+/** FormData: lang, orderId, token, codeId, reason, details?, screenshot?, preference, refund_* when refunding. */
+export async function reportProblem(form: FormData): Promise<OrderResult> {
+  const lang = langOf(form.get("lang"));
+  if (!API_URL) return fail(errors(lang).offline);
+  const orderId = String(form.get("orderId") ?? "");
+  const codeId = String(form.get("codeId") ?? "");
+  if (!/^[0-9A-Za-z]{26}$/.test(orderId) || !/^\d+$/.test(codeId)) return fail(errors(lang).badLink);
+
+  const body = new FormData();
+  for (const key of ["reason", "details", "preference", "refund_method", "refund_account_number", "refund_account_name"]) {
+    const value = form.get(key);
+    if (typeof value === "string" && value !== "") body.set(key, value);
+  }
+  const screenshot = form.get("screenshot");
+  if (screenshot instanceof File && screenshot.size > 0) body.set("screenshot", screenshot, screenshot.name || "screenshot.jpg");
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/orders/${orderId}/codes/${codeId}/report`, {
+      method: "POST",
+      headers: { Accept: "application/json", "X-Order-Token": String(form.get("token") ?? ""), "Accept-Language": lang, ...(await forwarded()) },
+      body,
+      cache: "no-store",
+    });
+  } catch {
+    return fail(errors(lang).unreachable);
+  }
+  if (!res.ok) return toError(res, lang, errors(lang).reportFailed);
   return { ok: true, order: toOrder(((await res.json()) as { data: ApiOrder }).data) };
 }

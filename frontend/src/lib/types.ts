@@ -54,6 +54,33 @@ export type BagLine = LineSnapshot & { qty: number };
 
 export type OrderStatus = "awaiting_payment" | "in_review" | "paid" | "expired" | "cancelled";
 
+export type ReportReason = "invalid" | "already_used" | "wrong_region" | "other";
+
+/** A "this code doesn't work" report and its outcome. */
+export type CodeReport = {
+  status: "open" | "replaced" | "refunded" | "declined";
+  reason: ReportReason;
+  preference: "replacement" | "refund";
+  createdAt: string;
+  resolvedAt: string | null;
+  /** Shown to the customer: decline reason and/or the admin's note, already translated. */
+  message: string | null;
+  replacementCodeId: number | null;
+  refundAmountMinor: number | null;
+  refundReference: string | null;
+  responseTime: string;
+};
+
+export type OrderCode = {
+  id: number;
+  code: string;
+  expiresAt: string | null;
+  /** "disputed" once a report was resolved with a replacement or refund. */
+  status: "sold" | "disputed";
+  reportableUntil: string | null;
+  report: CodeReport | null;
+};
+
 export type OrderItem = {
   quantity: number;
   unitPriceMinor: number;
@@ -63,7 +90,7 @@ export type OrderItem = {
   merchant: string;
   title: string;
   hue: number;
-  codes: { id: number; code: string; expiresAt: string | null }[];
+  codes: OrderCode[];
 };
 
 export type Order = {
@@ -99,6 +126,10 @@ export type OwnedCode = {
   purchasedAt: string;
   expiresAt: string | null;
   status: "active" | "used";
+  /** Retired after a replacement or refund. Older saved codes lack these fields. */
+  disputed?: boolean;
+  reportableUntil?: string | null;
+  report?: CodeReport | null;
   dealSlug: string;
   merchant: string;
   title: string;

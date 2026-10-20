@@ -3,11 +3,15 @@
 import { usePathname } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useStore } from "@/lib/store";
-import type { BagLine, PaymentMethod } from "@/lib/types";
+import type { BagLine, OwnedCode, PaymentMethod } from "@/lib/types";
 import { BagView, CheckoutView } from "./CheckoutSheet";
+import { ReportView } from "./ReportSheet";
 import { Icon } from "./Icon";
 
-export type SheetView = { step: "bag" } | { step: "checkout"; from: "bag" | "express"; items: BagLine[] };
+export type SheetView =
+  | { step: "bag" }
+  | { step: "checkout"; from: "bag" | "express"; items: BagLine[] }
+  | { step: "report"; code: OwnedCode };
 
 type ToastAction = { label: string; run: () => void };
 type Toast = { id: number; message: string; action?: ToastAction };
@@ -100,6 +104,7 @@ export function UIProvider({ children, paymentMethods }: { children: ReactNode; 
         <div className="sheet-panel">
           {view?.step === "bag" && <BagView />}
           {view?.step === "checkout" && <CheckoutView key={view.items.map((i) => i.optionId).join()} view={view} />}
+          {view?.step === "report" && <ReportView key={view.code.id} code={view.code} />}
         </div>
         {/* Toasts must render inside the modal while it is open: the top layer covers everything else. */}
         <ToastRegion toast={sheetOpen ? toastState : null} onDismiss={() => setToast(null)} />

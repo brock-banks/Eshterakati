@@ -15,6 +15,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->appendToGroup('api', SetLocaleFromRequest::class);
+
+        // The storefront calls the API from its own server and forwards the shopper's IP in
+        // X-Forwarded-For. Trust that header only from the storefront's address, so rate limits
+        // apply per shopper instead of to the whole site.
+        $middleware->trustProxies(
+            at: array_filter(array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1,::1')))),
+            headers: Request::HEADER_X_FORWARDED_FOR,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

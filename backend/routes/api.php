@@ -12,7 +12,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/deals/{slug}', [DealController::class, 'show']);
     Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
 
-    Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:10,1');
-    Route::get('/orders/{order}', [OrderController::class, 'show'])->middleware('throttle:60,1');
-    Route::post('/orders/{order}/receipt', [OrderController::class, 'receipt'])->middleware('throttle:10,1');
+    Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:place-order');
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->middleware('throttle:order-status');
+    Route::post('/orders/{order}/receipt', [OrderController::class, 'receipt'])->middleware('throttle:upload-receipt');
+    Route::post('/orders/{order}/codes/{code}/report', [OrderController::class, 'report'])->middleware('throttle:report-problem');
 });

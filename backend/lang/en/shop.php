@@ -63,4 +63,42 @@ return [
         ],
     ],
 
+    'report' => [
+        'validation' => [
+            'reason' => 'Choose what went wrong.',
+            'details_required' => 'Tell us what happened.',
+            'screenshot_image' => 'The screenshot must be an image (JPG, PNG or WebP) under 8 MB.',
+            'preference' => 'Choose a replacement code or a refund.',
+            'refund_method' => 'Choose where to send your refund.',
+            'refund_account_number' => 'Enter the account number for your refund.',
+            'refund_account_name' => 'Enter the account holder’s name.',
+        ],
+        'window_closed' => 'Problems can be reported within :days days of purchase. This code was bought on :date.',
+        'already_reported' => 'This code has already been reported.',
+        'not_reportable' => 'This code can’t be reported.',
+        'decline' => [
+            'already_redeemed' => 'The merchant confirmed this code was already redeemed on an account. If that wasn’t you, contact the merchant’s support with the code.',
+            'works' => 'We tested this code and it works. Make sure you’re redeeming it in the right store and region, exactly as shown.',
+            'region_stated' => 'This code only works for accounts in the region shown on the deal page before purchase, so it can’t be refunded.',
+            'other' => 'We couldn’t accept this report.',
+        ],
+        'mail' => [
+            'replaced' => [
+                'subject' => 'Your replacement code · :reference',
+                'greeting' => 'Here’s your replacement code',
+                'intro' => 'We’re sorry :item didn’t work. Your new code:',
+                'action' => 'View your codes',
+            ],
+            'refunded' => [
+                'subject' => 'Your refund was sent · :reference',
+                'greeting' => 'Your refund is on its way',
+                'intro' => 'We sent :amount to your :method account ending :last4. Transfer reference: :transfer.',
+            ],
+            'declined' => [
+                'subject' => 'About your report · :reference',
+                'greeting' => 'We checked your report',
+            ],
+        ],
+    ],
+
 ];

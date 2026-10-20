@@ -129,31 +129,41 @@ export function saveOrder(ref: OrderRef) {
   update((s) => ({ orders: [ref, ...s.orders.filter((o) => o.id !== ref.id)] }));
 }
 
-/** Record an order's latest state; once paid, its codes join the wallet (once). */
+/**
+ * Record an order's latest state. Once paid, its codes join the wallet; later syncs carry
+ * report outcomes, retire replaced or refunded codes and add replacement codes.
+ */
 export function syncOrder(order: Order) {
   update((s) => {
     const orders = s.orders.map((o) => (o.id === order.id ? { ...o, status: order.status } : o));
     if (order.status !== "paid") return { orders };
-    const known = new Set(s.codes.map((c) => c.id));
-    const fresh: OwnedCode[] = order.items.flatMap((item) =>
-      item.codes
-        .filter((c) => !known.has(String(c.id)))
-        .map((c) => ({
-          id: String(c.id),
-          code: c.code,
-          orderId: order.id,
-          purchasedAt: order.paidAt ?? order.createdAt,
-          expiresAt: c.expiresAt,
-          status: "active" as const,
-          dealSlug: item.dealSlug,
-          merchant: item.merchant,
-          title: item.title,
-          hue: item.hue,
-          label: item.label,
-          priceMinor: item.unitPriceMinor,
-        })),
-    );
-    return { orders, codes: fresh.length ? [...fresh, ...s.codes] : s.codes };
+
+    const server = new Map(order.items.flatMap((item) => item.codes.map((c) => [String(c.id), { item, c }] as const)));
+    const codes = s.codes.map((owned) => {
+      const match = server.get(owned.id);
+      return match ? { ...owned, disputed: match.c.status === "disputed", reportableUntil: match.c.reportableUntil, report: match.c.report } : owned;
+    });
+    const known = new Set(codes.map((c) => c.id));
+    const fresh: OwnedCode[] = [...server.values()]
+      .filter(({ c }) => !known.has(String(c.id)))
+      .map(({ item, c }) => ({
+        id: String(c.id),
+        code: c.code,
+        orderId: order.id,
+        purchasedAt: order.paidAt ?? order.createdAt,
+        expiresAt: c.expiresAt,
+        status: "active" as const,
+        disputed: c.status === "disputed",
+        reportableUntil: c.reportableUntil,
+        report: c.report,
+        dealSlug: item.dealSlug,
+        merchant: item.merchant,
+        title: item.title,
+        hue: item.hue,
+        label: item.label,
+        priceMinor: item.unitPriceMinor,
+      }));
+    return { orders, codes: [...fresh, ...codes] };
   });
 }
 export const setCodeStatus = (id: string, status: OwnedCode["status"]) =>

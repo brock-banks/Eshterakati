@@ -58,10 +58,25 @@ class OrderResource extends JsonResource
                     'hue' => $item->option->deal->hue,
                 ],
                 'codes' => $paid
-                    ? $item->codes->map(fn ($code) => [
+                    ? $item->codes->sortBy('id')->map(fn ($code) => [
                         'id' => $code->id,
                         'code' => $code->code,
                         'expires_at' => $code->expires_at?->toIso8601String(),
+                        // "disputed" once a report was resolved with a replacement or refund.
+                        'status' => $code->status,
+                        'reportable_until' => $code->reportableUntil()?->toIso8601String(),
+                        'report' => $code->report ? [
+                            'status' => $code->report->status,
+                            'reason' => $code->report->reason,
+                            'preference' => $code->report->preference,
+                            'created_at' => $code->report->created_at->toIso8601String(),
+                            'resolved_at' => $code->report->resolved_at?->toIso8601String(),
+                            'message' => $code->report->customerMessage(),
+                            'replacement_code_id' => $code->report->replacement_code_id,
+                            'refund_amount_minor' => $code->report->refund_amount_minor,
+                            'refund_reference' => $code->report->refund_reference,
+                            'response_time' => config('shop.report_response_time.'.app()->getLocale()) ?? config('shop.report_response_time.en'),
+                        ] : null,
                     ])->values()
                     : [],
             ])->values(),

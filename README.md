@@ -35,8 +35,9 @@ npm install
 npm run dev
 ```
 
-Admin: http://localhost:8000/admin. Review receipts (Orders), manage deals and prices, and
-**Add codes** to stock. Create a real admin with `php artisan make:filament-user` and set `is_admin = 1`.
+Admin: http://localhost:8000/admin. Review receipts (Orders), resolve **Problem reports** (send a
+replacement from stock, record a refund you've transferred, or decline with a reason), manage deals and
+prices, and **Add codes** to stock. Create a real admin with `php artisan make:filament-user` and set `is_admin = 1`.
 
 Without the API (`API_URL` unset) the storefront still browses a built‑in copy of the
 catalogue, but checkout needs the backend.
@@ -52,6 +53,7 @@ catalogue, but checkout needs the backend.
 | `POST` | `/api/v1/orders` | `{ phone, email?, payment_method, items: [{ option_id, quantity }] }` → reserves codes, returns transfer details and a one‑time `access_token` |
 | `GET` | `/api/v1/orders/{id}` | Header `X-Order-Token`. Includes plaintext codes once paid. |
 | `POST` | `/api/v1/orders/{id}/receipt` | Multipart `receipt` (JPG/PNG/WebP ≤ 8 MB) + `transaction_reference`. Header `X-Order-Token`. |
+| `POST` | `/api/v1/orders/{id}/codes/{code}/report` | "Code doesn't work": `reason`, `details?`, `screenshot?`, `preference=replacement\|refund` (+ `refund_method`, `refund_account_number`, `refund_account_name`). Within 30 days, once per code. Header `X-Order-Token`. |
 
 Order states: `awaiting_payment → in_review → paid`. A rejection sends the order back to
 `awaiting_payment` with a reason. `expired` happens when no receipt arrives in time, and the codes go back
@@ -65,6 +67,14 @@ number or receipt image can't pay for two orders.
 - **API:** sends `Accept-Language: ar|en` and gets localised copy and validation messages back. Each order stores its language, so its emails (right‑to‑left in Arabic) and links match.
 - **Admin:** stays in English. Rejection reasons are stored as codes and shown to customers in their language (`backend/lang/{en,ar}/shop.php`).
 
+## Deploying
+
+- Put the storefront behind a reverse proxy (nginx, Caddy, a load balancer) that **sets** `X-Forwarded-For`
+  to the client address (for nginx, `proxy_set_header X-Forwarded-For $remote_addr;`). The storefront
+  forwards it to the API, and `TRUSTED_PROXIES` in `backend/.env` must list the storefront server's
+  address. Rate limits are per shopper; without this setup, every customer shares one allowance.
+- Run `php artisan schedule:work` (or a cron job for `schedule:run`) so unpaid orders release their codes.
+
 ## Checks
 
 ```bash
@@ -75,6 +85,6 @@ cd frontend && npm run lint && npx tsc --noEmit && npm run build
 ## Not built yet
 
 Customer accounts (orders are kept on the device and in the email link),
-"report a problem" and refunds, and a production mail provider (local dev writes emails to the log).
+a production mail provider (local dev writes emails to the log).
 Merchants in the seed data are fictional, and prices use a placeholder exchange rate. Set real
 prices in the admin. See "Still open" in the UX spec.

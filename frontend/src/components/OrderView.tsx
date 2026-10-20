@@ -430,7 +430,8 @@ function PaidStep({ order }: { order: Order }) {
       </div>
       <div className="new-codes">
         {order.items.flatMap((item) =>
-          item.codes.map((c) => (
+          // Codes retired after a replacement or refund aren't shown; the replacement is.
+          item.codes.filter((c) => c.status !== "disputed").map((c) => (
             <div key={c.id} className="new-code">
               <div className="new-code-head">
                 <MerchantTile merchant={item.merchant} hue={item.hue} size="sm" />

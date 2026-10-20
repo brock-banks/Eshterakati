@@ -90,9 +90,20 @@ My Codes → find the pass → **Copy** (no need to reveal) → redeem with the 
 
 Orders badge shows receipts waiting → open order → receipt image beside **Amount to look for** and **Reference** → check the bank account → **Approve & send codes** (confirm: "Yes, money received") or **Reject receipt** (pick a reason and add an optional note; the customer sees full wording). Phone opens WhatsApp for follow‑up. Stock is managed per deal with **Add codes** (paste one per line).
 
-### Flow 5 — A code doesn't work *(designed, not built)*
+### Flow 5 — A code doesn't work *(built)*
 
-My Codes → **Report a Problem** → sheet: "What happened?" (Rejected as invalid · Already used · Wrong region · Other) + optional screenshot → submitted state with an expected response time → the order status shows "Refund in progress" → refunded. The API marks the code `disputed`; support verifies it with the merchant.
+My Codes → pass → **Report a Problem** (sheet), available for 30 days after purchase, once per code:
+1. **What happened?** The merchant says invalid · already used · doesn't work for my account's country · something else (details required).
+2. **Details** (optional) and a **screenshot of the error** (optional, resized on the phone).
+3. **What would you like?** **Replacement code** ("usually faster") or **Refund** of the price paid. For a refund, pick a wallet and give the account number and holder's name (encrypted at rest).
+4. "Report sent" with the response time. The pass then shows "Report sent {date}. We're checking it." and refreshes on its own.
+
+Admin → **Problem reports** (badge = open). The admin sees the code itself to test, the screenshot, the customer's preference and refund account. Actions:
+- **Send replacement**: the next code in stock for the same option. The customer gets it in Active, and the reported code is retired (shown in Used as "Replaced", code hidden).
+- **Mark as refunded**: after transferring, record the amount (pre‑filled with the price paid), the wallet, the account and your transfer reference. The customer sees "Refunded SDG X · transfer ref."
+- **Decline**: a reason (already redeemed · tested and works · region was stated · other), translated for the customer, plus an optional note. The customer keeps the code.
+
+Each outcome is emailed in the customer's language. The admin is emailed for every new report.
 
 ## 7. Screen specs
 
@@ -172,5 +183,5 @@ Guest card with Sign In. Appearance: Theme (Auto/Light/Dark) and Layout directio
 1. **Arabic copy review** by a native Sudanese speaker. The translation is Modern Standard Arabic and should be checked for local tone.
 2. **Review hours & staffing**: what to promise ("usually within 30 minutes, 9am–11pm"), and who covers nights and weekends.
 3. **Real prices**: set per option in /admin (the seed uses a placeholder exchange rate). Decide how often to reprice as the pound moves.
-4. **Brand licensing** for real merchant names and logos, and **refund policy** details (30 days? evidence needed?).
+4. **Brand licensing** for real merchant names and logos, and the **refund policy** wording (the flow uses 30 days; confirm what evidence you need).
 5. **Email provider** for production (the dev setup logs emails). SMS/WhatsApp notifications would reach more people than email.
