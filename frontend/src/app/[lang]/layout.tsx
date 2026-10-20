@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Alexandria } from "next/font/google";
 import { notFound } from "next/navigation";
 import { Header, TabBar } from "@/components/Header";
 import { IconSprite } from "@/components/IconSprite";
@@ -33,6 +34,13 @@ export const viewport: Viewport = {
   ],
 };
 
+// Bundled with the site so Arabic and Latin look the same on Windows, Android and Apple devices.
+const alexandria = Alexandria({
+  subsets: ["arabic", "latin"],
+  display: "swap",
+  variable: "--font-alexandria",
+});
+
 // Applies the saved theme before first paint, avoiding a flash.
 const PREFS_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("esh:v2")||"{}");if(s.theme==="light"||s.theme==="dark")document.documentElement.dataset.theme=s.theme}catch(e){}`;
 
@@ -43,7 +51,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   const paymentMethods = await getPaymentMethods(lang);
 
   return (
-    <html lang={lang} dir={dirOf(lang)} suppressHydrationWarning>
+    <html lang={lang} dir={dirOf(lang)} className={alexandria.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: PREFS_SCRIPT }} />
       </head>
