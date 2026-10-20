@@ -1,0 +1,100 @@
+ESHTERAKATI: HANDOFF NOTES FOR THE NEXT SESSION
+Written 2026-10-20, when work moved from a cloud session to a local PC.
+Repo: https://github.com/brock-banks/Eshterakati (branch main; everything is merged)
+
+
+WHAT THE APP IS
+---------------
+A store in Sudan for gift cards and subscription codes, priced in Sudanese pounds (SDG).
+Customers pay by bank transfer (Bankak, O-Cash, Fawry), upload a screenshot of the receipt,
+and get their codes once the owner approves the payment in /admin. Accounts are optional.
+The storefront is Arabic by default (/ar, right-to-left), with English at /en.
+
+  frontend/        Next.js 16 + React 19 storefront (TypeScript)
+  backend/         Laravel 13 JSON API + Filament 5 admin at /admin (PHP 8.3+, SQLite)
+  docs/UX-SPEC.md          Product and UX spec. Section 11, "Still open", lists open decisions.
+  docs/DEPLOY.md           Step-by-step Railway (API) + Vercel (storefront) guide
+  docs/PAYMENTS-SUDAN.md   Payment research: no public Sudanese payment APIs, hence receipts
+  design-system/MASTER.md  Design rules (Apple HIG style). Follow it for any UI change.
+  README.md                Local setup, API table, checks
+
+
+RUN IT LOCALLY
+--------------
+Needs PHP 8.3+ (with the intl, zip, pdo_sqlite extensions), Composer, and Node 20+.
+
+  cd backend
+  composer install
+  cp .env.example .env
+  php artisan key:generate
+  (in .env, set PAY_BANKAK_ACCOUNT_NUMBER etc.; only methods with a number show at checkout)
+  touch database/database.sqlite        (Windows: create an empty file with that name)
+  php artisan migrate --seed            (creates admin@example.com / password locally)
+  php artisan serve                     -> http://localhost:8000, admin at /admin
+  php artisan schedule:work             (second terminal: releases codes from unpaid orders)
+
+  cd frontend
+  cp .env.example .env.local            (API_URL=http://localhost:8000/api/v1)
+  npm install
+  npm run dev                           -> http://localhost:3000
+
+Checks to run before any commit:
+  cd backend  && php artisan test && vendor/bin/pint --test     (50 tests, all passing)
+  cd frontend && npm run lint && npx tsc --noEmit && npm run build
+
+
+THINGS TO KNOW BEFORE CHANGING CODE
+-----------------------------------
+- UI strings live in frontend/src/i18n/dictionaries/en.ts and ar.ts. English is the source of
+  truth, and TypeScript fails the build if Arabic is missing a key. Add every new string to both.
+- Every page lives under frontend/src/app/[lang]/. Layouts must work right-to-left.
+- Catalogue content has Arabic fields (name_ar, title_ar, ...) edited in /admin. When an Arabic
+  field is empty, the English one is shown.
+- Prices are integers in minor units (*_minor fields).
+- Codes are encrypted with APP_KEY. If the production APP_KEY is lost, every stored code becomes
+  unreadable. On Railway it is generated once and kept on the /data volume.
+- Order states: awaiting_payment -> in_review -> paid. A rejection sends the order back to
+  awaiting_payment. "expired" puts the codes back on sale.
+- The admin stays English-only. Customer-facing emails and messages follow the order's language
+  (backend/lang/{en,ar}/shop.php).
+- Rate limits are per shopper. When hosted, the storefront sends X-Shopper-IP with a shared key
+  (STOREFRONT_KEY on Vercel = SHOP_STOREFRONT_KEY on the API). See backend/app/Support/ShopperIp.php.
+- The production Docker image (backend/Dockerfile, backend/docker/start.sh) migrates, ensures the
+  admin account (php artisan shop:admin), and runs the scheduler on every boot.
+
+
+DEPLOYMENT STATUS
+-----------------
+- Code for hosting is done and merged (PR #7). Railway is NOT set up yet; follow docs/DEPLOY.md.
+- Vercel currently has two projects, "eshterakati-backend" and "eshterakati-backend-n9st". Both
+  point at the backend/ folder, so every PR shows two failed Vercel checks. Fix: keep one project,
+  set its Root Directory to "frontend", and delete the other (DEPLOY.md step 3).
+
+
+WHAT'S LEFT
+-----------
+Before taking real orders:
+  1. Deploy (Railway + Vercel, per docs/DEPLOY.md).
+  2. Real catalogue: the demo merchants are fictional and prices use a placeholder exchange rate.
+     Add real deals, prices and codes in /admin. Check the rights to real brand names and logos.
+  3. Support pages: on the Account screen, Help, Contact us, Refund policy and Terms only show a
+     "not available yet" toast (frontend/src/components/AccountView.tsx, the `soon` handler).
+     At least a refund policy and terms are needed. The problem-report flow promises refunds
+     within 30 days, so the policy must match that.
+  4. Decide receipt review hours and staffing. The shop promises "usually within 30 minutes,
+     9am-11pm" (SHOP_REVIEW_HOURS / SHOP_REVIEW_HOURS_AR in backend .env).
+  5. Have a native Sudanese speaker review the Arabic (it is formal Modern Standard Arabic).
+  6. Email provider for production (DEPLOY.md section 4). Without one, emails only go to logs.
+
+Buttons that show but don't work yet (AccountView.tsx):
+  - Sign In: there are no customer accounts. Orders and codes are kept in the browser and in the
+    order link.
+  - Notification switches (price drops, expiry reminders): saved locally, but nothing sends them.
+  Proposed next step, not yet approved by the owner: build Help / Contact / Refund / Terms pages
+  with draft text for the owner to approve, and hide Sign In and the notification switches until
+  they are real.
+
+Later:
+  - SMS / WhatsApp notifications (they reach more customers than email).
+  - Automatic payment confirmation, if YallaPay or Bank of Khartoum offer an API
+    (see docs/PAYMENTS-SUDAN.md, "Next steps").
