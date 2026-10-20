@@ -90,7 +90,7 @@ Theme: `prefers-color-scheme` by default. `html[data-theme="light"|"dark"]` forc
 | Inset grouped list | `.list` / `.list-row` / `.list-header` / `.list-footer` | Settings‑style. Separators are inset past the icon. Rows ≥ 52px. Chevron for navigation. |
 | Header | `Header.tsx` | Brand at the start, sections (Discover / Browse / My Codes) truly centred as a pill switcher (≥768), actions at the end: search, language (globe + "EN"/"ع"), bag, account. Phones keep brand, language and bag; the tab bar navigates. |
 | Deal card | `DealCard.tsx` | Gift‑card face (merchant gradient, monogram, name, one white "−13%" badge) over the title, price and a tinted **Buy** button. No shadow at rest; lifts on hover. Two per row on phones, auto‑fill grid ≥640. The card links to the deal; Buy sits above that link: one value in stock → checkout, several → the value picker sheet (`QuickBuySheet.tsx`). The countdown appears only in the last 24 hours, as orange text (`EndsSoon`). |
-| Hero | `.hero` | One per page. White "View Deal" button on the tinted gradient. |
+| Hero | `Hero.tsx` | One per page. The deal's gift‑card face, large and tilted, on a darker gradient of the merchant colour; no shadow on the banner. The title link covers the banner; a white **Buy** button (same quick buy as the cards) sits above it. |
 | Badge | `.badge-save` / `-ends` / `-verified` / `-neutral` | Always text, optionally with an icon. Colour is never the only signal. |
 | Option picker | `.option` radio cards | 2px tint ring and check when selected. Disabled with "Sold out" text. |
 | Stepper | `.stepper` | − / value / +, range 1–10. The value is announced through `output[aria-live]`. |

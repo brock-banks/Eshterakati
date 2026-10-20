@@ -59,7 +59,6 @@ export const en = {
     title: "Discover",
     todaysPick: "Today’s pick",
     todaysPickSale: "Today’s pick · Save up to {pct}%",
-    viewDeal: "View Deal",
     categories: "Categories",
     trending: "Trending now",
     endingSoon: "Ending soon",

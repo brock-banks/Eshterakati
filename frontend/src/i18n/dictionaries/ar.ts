@@ -56,7 +56,6 @@ export const ar: Dictionary = {
     title: "اكتشف",
     todaysPick: "اختيار اليوم",
     todaysPickSale: "اختيار اليوم · وفّر حتى {pct}%",
-    viewDeal: "عرض التفاصيل",
     categories: "الفئات",
     trending: "الأكثر طلبًا",
     endingSoon: "ينتهي قريبًا",
